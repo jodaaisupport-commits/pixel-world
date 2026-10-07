@@ -1,7 +1,7 @@
 // Weltgenerierung: seeded Noise für Biome + handplatziertes Dorf.
 import { makeValueNoise, fbm, hash2, clamp } from './noise.js';
-
-export const T = { GRASS: 0, FLOWER: 1, FOREST: 2, DIRT: 3, SAND: 4, WATER: 5, DEEP: 6, STONE: 7, BRIDGE: 8, FARM: 9 };
+import { T } from './map.js';
+export { T };
 export const MAP_W = 96;
 export const MAP_H = 72;
 export const DEFAULT_SEED = 20261007;
@@ -191,9 +191,12 @@ export function generateWorld(seed = DEFAULT_SEED) {
   carve([[18, 31], [17, 46]], 2, 3); // runter zum See -> Steg
   carve([[63, 29], [75, 29], [79, 29]], 2, 0);
   carve([[79, 29], [90, 32]], 2, 5);
+  carve([[90, 32], [95, 32]], 2, 0);   // -> Graufels-Berge (Osten)
   // Süd- und Nordweg
   carve([[57, 34], [57, 44], [56, 63]], 2, 6);
+  carve([[56, 63], [56, 71]], 2, 0);   // -> Möwenbucht (Süden)
   carve([[61, 25], [61, 18], [59, 7]], 2, 5);
+  carve([[59, 7], [59, 0]], 2, 0);     // -> Dunkelwald (Norden)
 
   // Steg in den See verlängern
   {
@@ -260,11 +263,13 @@ export function generateWorld(seed = DEFAULT_SEED) {
 
   // Häuser (5x4 Tiles, oberste Reihe begehbar -> man kann hinter das Dach laufen)
   const houses = [
-    { x: 44, y: 22, roof: 'red', name: 'Haus der Bäckerin' },
-    { x: 65, y: 21, roof: 'blue', name: 'Haus des Fischers' },
-    { x: 44, y: 34, roof: 'green', name: 'Kräuterhütte' },
-    { x: 65, y: 34, roof: 'plum', name: 'Haus der Bürgermeisterin' },
+    { x: 44, y: 22, roof: 'red', id: 'taverne' },
+    { x: 65, y: 21, roof: 'blue', id: 'kraemer' },
+    { x: 44, y: 34, roof: 'green', id: 'zuhause' },
+    { x: 65, y: 34, roof: 'plum', id: 'schmiede' },
   ];
+  const exits = [];
+  const doors = [];
   for (const h of houses) {
     place('house_' + h.roof, h.x, h.y, 5, 4, 1);
     const dx = h.x + 2, dy = h.y + 4;
@@ -274,7 +279,9 @@ export function generateWorld(seed = DEFAULT_SEED) {
       const side = h.x < 57 ? h.x + 6 : h.x - 2;
       carve([[dx, dy], [dx, dy + 1], [side, dy + 1], [side, 31]], 1, 0);
     }
-    interact.push({ x: dx, y: dy - 1, text: `${h.name}. Die Tür ist verschlossen – vielleicht später?` });
+    // Tür begehbar machen + Übergang in den Innenraum
+    doors.push([dx, dy - 1]);
+    exits.push({ x: dx, y: dy - 1, w: 1, h: 1, to: h.id, tx: 6, ty: 8, dir: 'up', kind: 'door' });
   }
   // Brunnen auf dem Platz, Schild am Dorfeingang
   place('well', 57, 26, 2, 2);
@@ -283,6 +290,12 @@ export function generateWorld(seed = DEFAULT_SEED) {
   place('lamp', 55, 26); place('lamp', 60, 26); place('lamp', 52, 31); place('lamp', 64, 32);
   place('sign', 41, 27);
   interact.push({ x: 41, y: 27, text: 'Pixeldorf – Willkommen!  ←  Fluss & See   |   →  Ostwald   |   ↓  Blumenwiese' });
+  place('sign', 62, 4);
+  interact.push({ x: 62, y: 4, text: '↑ Dunkelwald. Bei Dunkelheit nicht vom Weg abkommen!' });
+  place('sign', 92, 30);
+  interact.push({ x: 92, y: 30, text: '→ Graufels-Berge & alte Kristallmine' });
+  place('sign', 59, 67);
+  interact.push({ x: 59, y: 67, text: '↓ Möwenbucht – Strand, Leuchtturm & frische Brise' });
   place('sign', 19, 36);
   interact.push({ x: 19, y: 36, text: 'Zum Steg am Spiegelsee. Angeln verboten! (Noch.)' });
 
@@ -335,6 +348,10 @@ export function generateWorld(seed = DEFAULT_SEED) {
   // Wasser blockiert
   for (let i = 0; i < N; i++) if (ground[i] === T.WATER || ground[i] === T.DEEP) solid[i] = 1;
 
+  for (const [x, y] of doors) solid[idx(x, y)] = 0;
+  exits.push({ x: 59, y: 0, w: 2, h: 1, to: 'dunkelwald', tx: 31.5, ty: 45, dir: 'up', kind: 'edge' });
+  exits.push({ x: 95, y: 32, w: 1, h: 2, to: 'berge', tx: 2, ty: 24, dir: 'right', kind: 'edge' });
+  exits.push({ x: 56, y: 71, w: 2, h: 1, to: 'kueste', tx: 35.5, ty: 2, dir: 'down', kind: 'edge' });
   objects.sort((a, b) => (a.ty + a.fh) - (b.ty + b.fh));
 
   const inVillage = (tx, ty) => tx >= VILLAGE.x0 && tx <= VILLAGE.x1 && ty >= VILLAGE.y0 && ty <= VILLAGE.y1;
@@ -353,7 +370,16 @@ export function generateWorld(seed = DEFAULT_SEED) {
     return ty > H * 0.6 ? 'Südwiese' : 'Wiese';
   }
 
+  const npcs = [
+    { id: 'lina', x: 56, y: 31, mode: 'wander', home: [52, 29, 63, 34] },
+    { id: 'jan', x: 18, y: 48, mode: 'stand', dir: 'down' },
+  ];
+  // Fischer steht am Ende des Stegs
+  for (let y = H - 1; y > 36; y--) if (ground[idx(18, y)] === T.BRIDGE) { npcs[1].y = y - 1; break; }
+
   return {
+    id: 'village', name: 'Pixeldorf', kind: 'outdoor', styles: {}, ambience: {}, decals: [], lights: [], bg: '#1b2a1e',
+    exits, npcs,
     W, H, seed, ground, solid, objects, interact,
     spawn: { x: 57.5 * 16 + 8, y: 31 * 16 + 12 },
     isSolid(tx, ty) { return !inb(tx, ty) || solid[idx(tx, ty)] === 1; },

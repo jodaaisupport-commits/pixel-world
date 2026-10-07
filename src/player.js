@@ -1,5 +1,6 @@
 // Spielfigur: 4 Richtungen, Laufanimation, AABB-Kollision gegen Tile-Grid.
 import { TS } from './tiles.js';
+import { hitsTiles, hitsBodies } from './collision.js';
 
 const WALK_CYCLE = [1, 0, 2, 0];
 // Hitbox relativ zum Fußpunkt (x = Mitte, y = Unterkante)
@@ -16,11 +17,7 @@ export class Player {
   }
 
   collides(world, x, y) {
-    const x0 = Math.floor((x - HB.hw) / TS), x1 = Math.floor((x + HB.hw - 0.001) / TS);
-    const y0 = Math.floor((y - HB.h) / TS), y1 = Math.floor((y - 0.001) / TS);
-    for (let ty = y0; ty <= y1; ty++)
-      for (let tx = x0; tx <= x1; tx++) if (world.isSolid(tx, ty)) return true;
-    return false;
+    return hitsTiles(world, x, y, HB.hw, HB.h) || hitsBodies(world.entities || [], x, y, this, HB.hw, HB.h);
   }
 
   /** Bewegt entlang einer Achse; bei Kollision bündig an die Kante + Ecken-Rutschen. */
@@ -56,8 +53,9 @@ export class Player {
     if (input.right) vx += 1;
     if (input.up) vy -= 1;
     if (input.down) vy += 1;
-    this.moving = vx !== 0 || vy !== 0;
-    if (this.moving) {
+    const wants = vx !== 0 || vy !== 0;
+    const ox = this.x, oy = this.y;
+    if (wants) {
       // Blickrichtung: aktuelle Richtung behalten, wenn sie noch gedrückt ist
       const want = [];
       if (vy < 0) want.push('up'); if (vy > 0) want.push('down');
@@ -67,11 +65,15 @@ export class Player {
       const sp = this.speed * (input.run ? 1.65 : 1) * dt;
       this.moveAxis(world, (vx / len) * sp, 0);
       this.moveAxis(world, 0, (vy / len) * sp);
-      this.anim += dt * (input.run ? 12 : 8);
-    } else this.anim = 0;
+    }
     // Kartengrenzen
     this.x = Math.max(HB.hw, Math.min(world.W * TS - HB.hw, this.x));
     this.y = Math.max(HB.h, Math.min(world.H * TS, this.y));
+    // Animation nur, wenn sich die Figur tatsächlich bewegt hat (nicht beim Laufen gegen Wände)
+    const moved = Math.hypot(this.x - ox, this.y - oy);
+    this.moving = wants && moved > 0.05 * (dt * 60);
+    if (this.moving) this.anim += dt * (input.run ? 12 : 8);
+    else this.anim = 0;
   }
 
   get frame() { return this.moving ? WALK_CYCLE[Math.floor(this.anim) % 4] : 0; }
