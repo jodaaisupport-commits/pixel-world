@@ -1,0 +1,14 @@
+{
+  "name": "pixel-world",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "2D-Pixel-Art-Top-Down-Erkundungsprototyp (HTML5 Canvas, Vanilla JS)",
+  "scripts": {
+    "serve": "python3 -m http.server 8080",
+    "verify": "node tools/verify.mjs"
+  },
+  "devDependencies": {
+    "playwright-core": "^1.48.0"
+  }
+}
