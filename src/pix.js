@@ -58,6 +58,7 @@ export class Pix {
     d[i + 2] = d[i + 2] * (1 - af) + b * af;
     d[i + 3] = Math.max(d[i + 3], a);
   }
+  erase(x, y) { if (x >= 0 && y >= 0 && x < this.w && y < this.h) this.d[(y * this.w + x) * 4 + 3] = 0; }
   alpha(x, y) {
     if (x < 0 || y < 0 || x >= this.w || y >= this.h) return 0;
     return this.d[(y * this.w + x) * 4 + 3];

@@ -24,6 +24,7 @@ export function createMap({ id, name, W, H, fill = T.GRASS, seed = 1, kind = 'ou
     solid: new Uint8Array(N),
     occupied: new Uint8Array(N),
     objects: [], decals: [], interact: [], exits: [], npcs: [], lights: [],
+    pickups: [], chests: [], enemies: [],
     spawn: { x: 0, y: 0 },
     bg: '#000000',
     idx: (x, y) => y * W + x,
@@ -48,6 +49,45 @@ export function createMap({ id, name, W, H, fill = T.GRASS, seed = 1, kind = 'ou
   m.decal = (sprite, px, py) => m.decals.push({ sprite, x: px, y: py });
   m.light = (px, py, r, color = 'rgba(255,190,110,0.5)', flicker = 0) => m.lights.push({ x: px, y: py, r, color, flicker });
   m.exit = (x, y, w, h, to, tx, ty, dir = 'down', kind = 'edge') => m.exits.push({ x, y, w, h, to, tx, ty, dir, kind });
+  /** Dauerhaft einsammelbarer Gegenstand (Schlüssel = Karte + Position). */
+  m.pickup = (item, tx, ty, n = 1) => m.pickups.push({ item, tx, ty, n, key: `${id}:${tx},${ty}` });
+  /** Truhe: contents = [[item, n], ...]; locked = benötigter Schlüssel-Gegenstand. */
+  m.chest = (tx, ty, contents, locked = null) => {
+    const key = `${id}:chest:${tx},${ty}`;
+    m.place(locked ? 'chest_locked' : 'chest', tx, ty, 1, 1, 0, { chest: key, locked });
+    m.chests.push({ key, tx, ty, contents, locked });
+  };
+  m.enemy = (type, tx, ty) => m.enemies.push({ type, x: tx, y: ty });
+  /** Nächstes freies, begehbares Tile um (x, y) mit passendem Boden. */
+  m.findFree = (x, y, ok = () => true, maxR = 8) => {
+    for (let r = 0; r <= maxR; r++)
+      for (let dy = -r; dy <= r; dy++) for (let dx = -r; dx <= r; dx++) {
+        if (Math.max(Math.abs(dx), Math.abs(dy)) !== r) continue;
+        const xx = x + dx, yy = y + dy;
+        if (!m.inb(xx, yy) || m.occupied[m.idx(xx, yy)] || SOLID_TILES.has(m.get(xx, yy)) || !ok(m.get(xx, yy), xx, yy)) continue;
+        if (m.pickups.some((p) => p.tx === xx && p.ty === yy)) continue;
+        return [xx, yy];
+      }
+    return null;
+  };
+  /** Gegner zufällig (deterministisch) auf passende, freie Tiles verteilen – fern von Ausgängen/NPCs. */
+  m.scatterEnemies = (type, count, ok, salt = 0) => {
+    const cands = [];
+    for (let y = 2; y < H - 2; y++) for (let x = 2; x < W - 2; x++) {
+      if (m.occupied[m.idx(x, y)] || SOLID_TILES.has(m.get(x, y)) || !ok(m.get(x, y), x, y)) continue;
+      if (m.exits.some((e) => Math.hypot(e.x - x, e.y - y) < 9)) continue;
+      if (m.npcs.some((n) => Math.hypot(n.x - x, n.y - y) < 7)) continue;
+      cands.push([x, y, hash2(x, y, seed + 900 + salt)]);
+    }
+    cands.sort((a, b) => a[2] - b[2]);
+    const chosen = [];
+    for (const [x, y] of cands) {
+      if (chosen.length >= count) break;
+      if (chosen.some(([cx, cy]) => Math.hypot(cx - x, cy - y) < 6) || m.enemies.some((e) => Math.hypot(e.x - x, e.y - y) < 4)) continue;
+      chosen.push([x, y]); m.enemy(type, x, y);
+    }
+    return chosen;
+  };
   m.isSolid = (tx, ty) => !m.inb(tx, ty) || m.solid[m.idx(tx, ty)] === 1;
   m.tileAt = (tx, ty) => m.get(tx, ty);
   m.biomeAt = () => m.name;

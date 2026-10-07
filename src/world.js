@@ -377,8 +377,20 @@ export function generateWorld(seed = DEFAULT_SEED) {
   // Fischer steht am Ende des Stegs
   for (let y = H - 1; y > 36; y--) if (ground[idx(18, y)] === T.BRIDGE) { npcs[1].y = y - 1; break; }
 
+  // Ein paar verstreute Taler (dauerhaft einsammelbar)
+  const pickups = [];
+  for (const [x0, y0] of [[30, 14], [83, 52], [12, 62], [70, 9], [40, 50]]) {
+    let done = false;
+    for (let r = 0; r < 6 && !done; r++) for (let dy = -r; dy <= r && !done; dy++) for (let dx = -r; dx <= r && !done; dx++) {
+      const x = x0 + dx, y = y0 + dy;
+      if (!inb(x, y) || solid[idx(x, y)] || ![T.GRASS, T.FLOWER, T.DIRT].includes(ground[idx(x, y)])) continue;
+      if (objects.some((o) => x >= o.tx && x < o.tx + o.fw && y >= o.ty && y < o.ty + o.fh)) continue;
+      pickups.push({ item: 'taler', tx: x, ty: y, n: 2, key: `village:${x},${y}` }); done = true;
+    }
+  }
+
   return {
-    id: 'village', name: 'Pixeldorf', kind: 'outdoor', styles: {}, ambience: {}, decals: [], lights: [], bg: '#1b2a1e',
+    id: 'village', pickups, chests: [], enemies: [], inb, get, name: 'Pixeldorf', kind: 'outdoor', styles: {}, ambience: {}, decals: [], lights: [], bg: '#1b2a1e',
     exits, npcs,
     W, H, seed, ground, solid, objects, interact,
     spawn: { x: 57.5 * 16 + 8, y: 31 * 16 + 12 },

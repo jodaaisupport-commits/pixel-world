@@ -1,5 +1,5 @@
 // Neue Gebiete außerhalb des Dorfes: Dunkelwald (N), Graufels-Berge (O) mit Kristallhöhle, Möwenbucht (S).
-import { createMap, carvePath, T } from '../map.js';
+import { createMap, carvePath, T, SOLID_TILES } from '../map.js';
 import { TS } from '../pix.js';
 import { makeValueNoise, fbm } from '../noise.js';
 
@@ -14,6 +14,21 @@ function scatterTrees(m, ok, pick, density, noTree) {
       if (near(-1, 0) || near(-1, -1) || near(0, -1) || near(1, -1)) continue;
       if (m.hash(x, y, 3) < density(x, y)) { m.place(pick(x, y), x, y); at[i] = 1; }
     }
+}
+/** Rechteck frei (kein Objekt, kein blockierendes Tile)? */
+const freeRect = (m, x, y, w, h, ok = () => true) => {
+  for (let yy = y; yy < y + h; yy++) for (let xx = x; xx < x + w; xx++)
+    if (!m.inb(xx, yy) || m.occupied[m.idx(xx, yy)] || SOLID_TILES.has(m.get(xx, yy)) || !ok(m.get(xx, yy))) return false;
+  return true;
+};
+/** Objekt möglichst nah an (x, y) platzieren. */
+function placeNear(m, sprite, x, y, w = 1, h = 1, solidFrom = 0, ok = () => true, extra = {}) {
+  for (let r = 0; r < 10; r++)
+    for (let dy = -r; dy <= r; dy++) for (let dx = -r; dx <= r; dx++) {
+      if (Math.max(Math.abs(dx), Math.abs(dy)) !== r) continue;
+      if (freeRect(m, x + dx - 1, y + dy - 1, w + 2, h + 2, ok)) return m.place(sprite, x + dx, y + dy, w, h, solidFrom, extra);
+    }
+  return null;
 }
 const markAround = (m, mask, x0, y0, x1, y1) => { for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) if (m.inb(x, y)) mask[m.idx(x, y)] = 1; };
 
@@ -83,6 +98,27 @@ export function dunkelwald() {
     if (t === T.SWAMP || Math.hypot((tx - 13) / 9, (ty - 27) / 7) < 1) return 'Nebelmoor';
     return 'Dunkelwald';
   };
+  // Moorkraut am Moorrand
+  const herbSpots = [];
+  for (let y = 2; y < H - 2; y++) for (let x = 2; x < W - 2; x++) {
+    if (m.get(x, y) !== T.DGRASS || m.occupied[m.idx(x, y)]) continue;
+    let near = false;
+    for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1], [2, 0], [-2, 0], [0, 2], [0, -2]]) if (m.get(x + dx, y + dy) === T.SWAMP) near = true;
+    if (near) herbSpots.push([x, y, m.hash(x, y, 77)]);
+  }
+  herbSpots.sort((a, b) => a[2] - b[2]);
+  const herbs = [];
+  for (const [x, y] of herbSpots) {
+    if (herbs.length >= 7) break;
+    if (herbs.some(([a, b]) => Math.hypot(a - x, b - y) < 4)) continue;
+    herbs.push([x, y]); m.pickup('moorkraut', x, y);
+  }
+  // Gegner, Truhe beim Schrein, verstreute Taler
+  m.scatterEnemies('moorslime', 3, (t, x, y) => Math.hypot((x - 13) / 10, (y - 27) / 8) < 1.3, 1);
+  m.scatterEnemies('slime', 5, (t, x, y) => (t === T.DIRT || t === T.DGRASS) && y < 41 && x > 18 && Math.hypot(x - 50, y - 31) > 6, 2);
+  const cs = m.findFree(35, 9, (t) => t === T.DGRASS);
+  if (cs) m.chest(cs[0], cs[1], [['heiltrank', 1], ['taler', 15]]);
+  for (const [x, y] of [[22, 28], [44, 24], [29, 15]]) { const f = m.findFree(x, y); if (f) m.pickup('taler', f[0], f[1], 3); }
   return m.finalize();
 }
 
@@ -146,7 +182,7 @@ export function berge() {
   markAround(m, noTree, 36, 8, 46, 13);
   scatterTrees(m, (t) => t === T.SNOW || t === T.GRASS || t === T.ROCKY,
     (x, y) => (m.get(x, y) === T.GRASS ? 'pine' + (m.hash(x, y, 4) < 0.5 ? 0 : 1) : 'snowpine' + (m.hash(x, y, 4) < 0.5 ? 0 : 1)),
-    (x, y) => (m.get(x, y) === T.GRASS ? 0.22 : m.get(x, y) === T.SNOW ? 0.07 : 0.035), noTree);
+    (x, y) => (m.get(x, y) === T.GRASS ? 0.22 : m.get(x, y) === T.SNOW ? 0.07 : 0.045), noTree);
   for (let y = 2; y < H - 2; y++) for (let x = 2; x < W - 3; x++) {
     const i = m.idx(x, y), h = m.hash(x, y, 13);
     if (noTree[i] || m.occupied[i] || m.occupied[i + 1]) continue;
@@ -156,6 +192,42 @@ export function berge() {
   }
   m.exit(0, 23, 1, 2, 'village', 93, 32, 'left');
   m.spawn = { x: 2 * TS + 8, y: 24 * TS + 12 };
+  // Mehr Leben in den Bergen: Lager, Steinmännchen, Erzadern, tote Büsche, Bergblumen
+  const land = (t) => t === T.ROCKY || t === T.GRASS || t === T.SNOW;
+  const tent = placeNear(m, 'tent', 27, 29, 2, 1, 0, land);
+  if (tent) {
+    const fire = placeNear(m, 'campfire', tent.tx + 3, tent.ty + 1, 1, 1, 0, land);
+    if (fire) m.light(fire.tx * TS + 8, fire.ty * TS + 8, 56, 'rgba(255,170,80,0.6)', 0.8);
+    placeNear(m, 'log', tent.tx + 2, tent.ty + 3, 2, 1, 0, land);
+    const ch = m.findFree(tent.tx - 2, tent.ty + 1, land);
+    if (ch) m.chest(ch[0], ch[1], [['apfel', 2], ['taler', 12]]);
+    m.interact.push({ x: tent.tx + 0.5, y: tent.ty, text: 'Erwins Vorratszelt. Es riecht nach Kaffee und nassem Hund.' });
+  }
+  for (const [x, y] of [[10, 31], [36, 40], [52, 15], [24, 44], [58, 38]]) placeNear(m, 'cairn', x, y, 1, 1, 0, land);
+  for (const [x, y] of [[34, 35], [9, 43], [47, 42]]) {
+    const f = m.findFree(x, y, (t) => t === T.ROCKY);
+    if (f) { m.decal('orevein', f[0] * TS, f[1] * TS + 3); m.pickup('eisenerz', f[0], f[1]); }
+  }
+  for (let y = 3; y < H - 3; y++) for (let x = 3; x < W - 3; x++) {
+    const i = m.idx(x, y), t = m.get(x, y), h = m.hash(x, y, 21);
+    if (noTree[i] || m.occupied[i]) continue;
+    if (t === T.ROCKY && h < 0.018) m.place('deadbush', x, y, 1, 1, 99);
+    else if (t === T.ROCKY && h < 0.03 && !m.occupied[i + 1]) m.place('log', x, y, 2, 1);
+    else if ((t === T.SNOW || t === T.ROCKY) && h > 0.965) m.decal('edelweiss', x * TS + 3, y * TS + 5);
+    else if ((t === T.GRASS || t === T.ROCKY) && h > 0.93 && h < 0.96) m.decal('heather', x * TS + 2, y * TS + 6);
+  }
+  // Felsgruppen in den offenen Geröllfeldern
+  for (const [cx, cy] of [[22, 31], [38, 27], [44, 38], [14, 41], [33, 43], [52, 28], [8, 35]]) {
+    for (let k = 0; k < 5; k++) {
+      const x = cx + Math.round((m.hash(cx, k, 41) - 0.5) * 5), y = cy + Math.round((m.hash(k, cy, 42) - 0.5) * 4);
+      if (!m.inb(x, y) || m.occupied[m.idx(x, y)] || m.get(x, y) !== T.ROCKY || noTree[m.idx(x, y)]) continue;
+      if (k === 0 && freeRect(m, x, y, 2, 1, (t) => t === T.ROCKY)) m.place('boulder', x, y, 2, 1);
+      else m.place('rock' + (k % 2), x, y);
+    }
+  }
+  m.scatterEnemies('wolf', 3, (t, x, y) => (t === T.GRASS || t === T.ROCKY) && y > 18 && x > 8, 3);
+  m.scatterEnemies('golem', 2, (t, x, y) => t === T.ROCKY && y > 22 && x > 14, 4);
+  for (const [x, y] of [[20, 27], [44, 30], [56, 44]]) { const f = m.findFree(x, y, land); if (f) m.pickup('taler', f[0], f[1], 3); }
   m.biomeAt = (tx, ty) => {
     const t = m.get(tx, ty);
     if (tx >= 35 && tx <= 46 && ty <= 13) return 'Alte Kristallmine';
@@ -218,6 +290,14 @@ export function kueste() {
   }
   m.exit(35, 0, 2, 1, 'village', 56.5, 69, 'up');
   m.spawn = { x: 36 * TS, y: 2 * TS + 12 };
+  // Jans Kompass am Weststrand (von Krabben bewacht), verschlossene Truhe am Leuchtturm
+  const kp = m.findFree(6, Math.round(shore(6)) - 2, (t) => t === T.SAND);
+  if (kp) m.pickup('kompass', kp[0], kp[1]);
+  const lc = m.findFree(59, ly + 2, (t) => t === T.ROCKY);
+  if (lc) m.chest(lc[0], lc[1], [['herzcontainer', 1], ['taler', 30]], 'schluessel');
+  m.scatterEnemies('crab', 3, (t, x) => t === T.SAND && x < 17, 5);
+  m.scatterEnemies('crab', 3, (t, x) => t === T.SAND && x > 24 && x < 56, 6);
+  for (const [x, y] of [[27, 17], [52, 16]]) { const f = m.findFree(x, y, (t) => t === T.SAND); if (f) m.pickup('taler', f[0], f[1], 2); }
   m.biomeAt = (tx, ty) => {
     const t = m.get(tx, ty);
     if (t === T.BRIDGE) return 'Bootssteg';
@@ -276,8 +356,9 @@ export function hoehle() {
     if (walls >= 1 && h < 0.12) m.place('stalagmite' + (h < 0.06 ? 0 : 1), x, y);
     else if (h > 0.97) m.decal(h > 0.985 ? 'bones' : 'puddle', x * TS, y * TS + 4);
   }
-  m.place('chest', 25, 5);
-  m.interact.push({ x: 25, y: 5, text: 'Eine alte Truhe! … Leer. Nur ein Zettel: „Fortsetzung folgt. – E.“' });
+  m.chest(25, 5, [['sternenerz', 1], ['taler', 25]]);
+  for (const [x, y] of [[10, 12], [30, 9], [33, 23], [14, 19]]) { const f = m.findFree(x, y, (t) => t === T.CAVE); if (f) m.pickup('kristall', f[0], f[1]); }
+  m.scatterEnemies('bat', 6, (t) => t === T.CAVE, 7);
   m.light(25 * TS + 8, 5 * TS + 8, 30, 'rgba(255,210,100,0.45)', 0.3);
   m.biomeAt = (tx, ty) => (Math.hypot(tx - 25, ty - 6) < 5 ? 'Schatzkammer' : Math.hypot(tx - 32, ty - 17) < 6 ? 'Unterirdischer See' : 'Kristallhöhle');
   return m.finalize();

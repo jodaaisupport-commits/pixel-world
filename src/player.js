@@ -14,6 +14,27 @@ export class Player {
     this.moving = false;
     this.anim = 0;
     this.speed = 78; // px/s
+    this.atk = null;      // laufender Schwertschlag { t, dur, hit:Set }
+    this.kbx = 0; this.kby = 0; this.kbt = 0; // Rückstoß
+    this.inv = 0;         // Unverwundbarkeit nach Treffer (Blinken)
+    this.sword = null;    // Schwert-Sprite (Canvas) oder null
+    this.dead = false;
+  }
+  get sortY() { return this.y; }
+  startAttack() { if (this.atk || this.kbt > 0) return false; this.atk = { t: 0, dur: 0.26, hit: new Set() }; return true; }
+  knockback(fromX, fromY, power = 170) {
+    const dx = this.x - fromX, dy = this.y - fromY, l = Math.hypot(dx, dy) || 1;
+    this.kbx = (dx / l) * power; this.kby = (dy / l) * power; this.kbt = 0.16;
+  }
+  /** Trefferfläche des Schwerts in Welt-Pixeln (abhängig von Blickrichtung und Reichweite). */
+  swordBox(reach = 0) {
+    const x = this.x, y = this.y;
+    switch (this.dir) {
+      case 'down': return { x: x - 11, y: y - 6, w: 22, h: 18 + reach };
+      case 'up': return { x: x - 11, y: y - 32 - reach, w: 22, h: 22 + reach };
+      case 'left': return { x: x - 22 - reach, y: y - 22, w: 19 + reach, h: 22 };
+      default: return { x: x + 3, y: y - 22, w: 19 + reach, h: 22 };
+    }
   }
 
   collides(world, x, y) {
@@ -48,6 +69,16 @@ export class Player {
   }
 
   update(dt, input, world) {
+    this.inv = Math.max(0, this.inv - dt);
+    if (this.atk) { this.atk.t += dt; if (this.atk.t >= this.atk.dur) this.atk = null; }
+    if (this.kbt > 0) {
+      this.kbt -= dt;
+      this.moveAxis(world, this.kbx * dt, 0); this.moveAxis(world, 0, this.kby * dt);
+      this.x = Math.max(HB.hw, Math.min(world.W * TS - HB.hw, this.x));
+      this.y = Math.max(HB.h, Math.min(world.H * TS, this.y));
+      this.moving = false; this.anim = 0;
+      return;
+    }
     let vx = 0, vy = 0;
     if (input.left) vx -= 1;
     if (input.right) vx += 1;
@@ -60,9 +91,9 @@ export class Player {
       const want = [];
       if (vy < 0) want.push('up'); if (vy > 0) want.push('down');
       if (vx < 0) want.push('left'); if (vx > 0) want.push('right');
-      if (!want.includes(this.dir)) this.dir = vx !== 0 ? (vx < 0 ? 'left' : 'right') : (vy < 0 ? 'up' : 'down');
+      if (!want.includes(this.dir) && !this.atk) this.dir = vx !== 0 ? (vx < 0 ? 'left' : 'right') : (vy < 0 ? 'up' : 'down');
       const len = Math.hypot(vx, vy);
-      const sp = this.speed * (input.run ? 1.65 : 1) * dt;
+      const sp = this.speed * (input.run ? 1.65 : 1) * (this.atk ? 0.35 : 1) * dt;
       this.moveAxis(world, (vx / len) * sp, 0);
       this.moveAxis(world, 0, (vy / len) * sp);
     }
@@ -85,10 +116,40 @@ export class Player {
   draw(ctx, cam, alpha = 1) {
     const b = this.bounds;
     const sx = b.x - cam.x, sy = b.y - cam.y;
-    ctx.globalAlpha = alpha;
     if (alpha === 1) ctx.drawImage(this.frames.shadow, sx + 2, sy + 17);
+    // Blinken während der Unverwundbarkeit
+    if (this.inv > 0 && Math.floor(this.inv * 14) % 2 === 0 && alpha === 1) { if (this.atk) this.drawSword(ctx, cam); return; }
+    ctx.globalAlpha = alpha;
+    if (this.atk && this.dir === 'up' && alpha === 1) this.drawSword(ctx, cam);
     const bob = this.moving && this.frame !== 0 ? -1 : 0;
-    ctx.drawImage(this.frames[this.dir][this.frame], sx, sy + bob);
+    const fr = this.atk ? 2 : this.frame; // Ausfallschritt beim Schlag
+    ctx.drawImage(this.frames[this.dir][fr], sx, sy + bob);
     ctx.globalAlpha = 1;
+    if (this.atk && this.dir !== 'up' && alpha === 1) this.drawSword(ctx, cam);
+  }
+  /** Schwert im Bogen schwingen + Pixel-Schlagspur. */
+  drawSword(ctx, cam) {
+    if (!this.sword) return;
+    const base = { right: 0, down: Math.PI / 2, left: Math.PI, up: -Math.PI / 2 }[this.dir];
+    const p = Math.min(1, this.atk.t / (this.atk.dur * 0.75));
+    const e = 1 - (1 - p) * (1 - p);
+    const flip = this.dir === 'left' || this.dir === 'up' ? -1 : 1;
+    const a0 = base - 1.25 * flip, a = a0 + 2.4 * e * flip;
+    const hx = Math.round(this.x - cam.x + ({ right: 3, left: -3, up: 2, down: -2 }[this.dir]));
+    const hy = Math.round(this.y - cam.y - 9 + (this.dir === 'down' ? 2 : 0));
+    const long = this.swordLong ? 2 : 0;
+    // Schlagspur
+    ctx.fillStyle = this.swordLong ? 'rgba(160,240,255,0.75)' : 'rgba(255,255,255,0.7)';
+    const steps = 14;
+    for (let i = 0; i <= steps; i++) {
+      const aa = a0 + (a - a0) * (i / steps);
+      if (i / steps < 0.25 && p > 0.6) continue;
+      for (const r of [12 + long, 13 + long]) ctx.fillRect(Math.round(hx + Math.cos(aa) * r), Math.round(hy + Math.sin(aa) * r), 1, 1);
+    }
+    ctx.save();
+    ctx.translate(hx, hy);
+    ctx.rotate(a + Math.PI / 4);
+    ctx.drawImage(this.sword, -3, -16);
+    ctx.restore();
   }
 }

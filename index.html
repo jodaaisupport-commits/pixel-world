@@ -32,16 +32,78 @@
     #area small { display: block; font-size: 11px; color: #cfc2a8; letter-spacing: 2px; text-transform: uppercase; }
     #area.show { opacity: 1; transform: translate(-50%, 0); }
     .hidden { display: none; }
+    #hud-stats { display: flex; align-items: center; gap: 12px; margin-bottom: 4px; }
+    #hearts { image-rendering: pixelated; display: block; }
+    #hearts.hit { animation: hit 0.45s steps(3); }
+    @keyframes hit { 0%, 66% { filter: brightness(2.2) saturate(0.4); transform: translateX(-2px); } 33% { transform: translateX(2px); } }
+    #purse { display: flex; align-items: center; gap: 4px; color: #ffe14d; font-size: 16px; }
+    #purse img { width: 27px; height: 27px; image-rendering: pixelated; margin: -4px -2px -4px -4px; }
+    #toasts { position: fixed; right: 14px; top: 190px; display: flex; flex-direction: column; align-items: flex-end; gap: 6px; pointer-events: none; }
+    .toast { position: static; color: #f7eedc; background: rgba(32,22,26,0.88); border: 3px solid #f7eedc; box-shadow: 0 0 0 3px #20161a;
+      font: bold 13px/1.2 ui-monospace, "DejaVu Sans Mono", monospace; padding: 4px 10px 4px 6px; display: flex; align-items: center; gap: 6px;
+      animation: tin 0.25s ease-out; transition: opacity 0.4s, transform 0.4s; }
+    .toast img { width: 27px; height: 27px; image-rendering: pixelated; }
+    .toast.out { opacity: 0; transform: translateX(20px); }
+    @keyframes tin { from { opacity: 0; transform: translateX(30px); } }
+    #banner { top: 27%; left: 50%; transform: translate(-50%, -50%) scale(0.9); opacity: 0; transition: opacity 0.35s, transform 0.35s; text-align: center; padding: 14px 34px 12px; border-color: #ffe14d; }
+    #banner.show { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+    #banner small { display: block; font-size: 12px; color: #ffe14d; letter-spacing: 3px; text-transform: uppercase; }
+    #banner .b-title { font-size: 24px; margin: 4px 0; }
+    #banner .b-lines span { display: inline-block; margin: 2px 6px; color: #9fe08a; font-size: 13px; }
+    #banner .b-lines span::before { content: '+ '; }
+    #banner .b-hint { color: #8f826c; font-size: 11px; margin-top: 4px; }
+    .window { top: 50%; left: 50%; transform: translate(-50%, -50%); width: 560px; max-width: 92vw; max-height: 82vh; overflow: hidden; padding: 12px 18px 10px; font-size: 13px; background: rgba(32,22,26,0.95); }
+    .window h2 { margin: 0 0 10px; font-size: 18px; color: #ffe14d; letter-spacing: 1px; }
+    .window .hint { margin-top: 10px; color: #8f826c; font-size: 11px; text-align: right; }
+    .window .muted { color: #8f826c; }
+    .slot { width: 54px; height: 54px; background: #3a2a30; border: 2px solid #5a4648; box-shadow: inset 2px 2px 0 #20161a; position: relative; box-sizing: border-box; }
+    .slot img { width: 54px; height: 54px; image-rendering: pixelated; position: absolute; left: -2px; top: -2px; }
+    .slot b { position: absolute; right: 3px; bottom: 0; font-size: 12px; color: #fff; text-shadow: 1px 1px 0 #000, -1px 0 0 #000; }
+    .slot.sel { border-color: #ffe14d; box-shadow: 0 0 0 2px #ffe14d, inset 2px 2px 0 #20161a; }
+    .grid { display: grid; grid-template-columns: repeat(8, 54px); gap: 8px; justify-content: center; margin: 10px 0; }
+    .inv-top { display: flex; gap: 18px; align-items: center; }
+    .eq { display: flex; align-items: center; gap: 8px; color: #cfc2a8; font-size: 12px; }
+    .eq i { color: #f7eedc; font-style: normal; }
+    .purse { margin-left: auto; text-align: right; color: #ffe14d; font-size: 15px; }
+    .purse img { width: 27px; height: 27px; image-rendering: pixelated; vertical-align: middle; }
+    .purse .hp { color: #ff8a8a; font-size: 12px; }
+    .desc { min-height: 58px; border-top: 2px solid #5a4648; padding-top: 8px; }
+    .desc b { color: #ffe14d; font-size: 14px; } .desc p { margin: 4px 0; color: #e8dcc2; font-weight: normal; }
+    .desc em { color: #9fe08a; font-style: normal; font-size: 12px; }
+    .quest { border: 2px solid #5a4648; padding: 8px 10px; margin-bottom: 8px; background: #2a1e22; }
+    .q-title { color: #ffe14d; font-size: 15px; } .q-giver { color: #8f826c; font-size: 11px; }
+    .quest p { margin: 4px 0 6px; font-weight: normal; color: #cfc2a8; }
+    .quest ul { margin: 0; padding: 0; list-style: none; } .quest li { margin: 2px 0; }
+    .quest li.done { color: #9fe08a; text-decoration: line-through; } .quest li.cur { color: #f7eedc; }
+    .q-reward { margin-top: 6px; color: #e0b84a; font-size: 12px; }
+    .q-done-head { color: #8f826c; margin: 10px 0 4px; letter-spacing: 2px; text-transform: uppercase; font-size: 11px; }
+    .q-done { color: #9fe08a; }
+    .shop-row { display: grid; grid-template-columns: 54px 1fr auto; grid-template-rows: auto auto; gap: 0 12px; align-items: center; padding: 6px 8px; border: 2px solid transparent; margin-bottom: 4px; }
+    .shop-row > img { width: 54px; height: 54px; image-rendering: pixelated; grid-row: span 2; }
+    .shop-row b { color: #f7eedc; } .shop-row p { margin: 2px 0 0; font-weight: normal; color: #cfc2a8; font-size: 12px; }
+    .shop-row .price { color: #ffe14d; font-size: 16px; display: flex; align-items: center; }
+    .shop-row .price img { width: 27px; height: 27px; image-rendering: pixelated; }
+    .shop-row .own { grid-column: 3; color: #8f826c; font-size: 11px; text-align: right; }
+    .shop-row.sel { border-color: #ffe14d; background: #3a2a30; } .shop-row.poor .price { color: #a85a5a; }
+    #dialog .dlg-choices { margin-top: 8px; color: #cfc2a8; } #dialog .dlg-choices .sel { color: #ffe14d; }
+    #death { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; pointer-events: none; color: #ff6a6a; font: bold 34px ui-monospace, monospace; text-shadow: 3px 3px 0 #20161a; opacity: 0; transition: opacity 0.4s; letter-spacing: 3px; }
+    #death.show { opacity: 1; }
   </style>
 </head>
 <body>
   <canvas id="game"></canvas>
-  <div id="hud" class="panel"><div id="hud-place">…</div><div id="hud-coords"></div></div>
-  <div id="help" class="panel"><b>WASD/Pfeile</b> laufen · <b>Shift</b> rennen · <b>E</b> sprechen/benutzen · <b>M</b> Karte · <b>T</b> Tageszeit · <b>+/-</b> Zoom</div>
+  <div id="hud" class="panel"><div id="hud-stats"><canvas id="hearts" width="84" height="24"></canvas><div id="purse"><img id="coin-icon" alt=""><span id="coins">0</span></div></div><div id="hud-place">…</div><div id="hud-coords"></div></div>
+  <div id="help" class="panel"><b>WASD/Pfeile</b> laufen · <b>Shift</b> rennen · <b>E</b> sprechen/benutzen · <b>J/Leertaste</b> Schwert · <b>I</b> Inventar · <b>Q</b> Quests · <b>M</b> Karte · <b>T</b> Tageszeit</div>
   <div id="minimap" class="panel hidden"><canvas id="minimap-canvas"></canvas></div>
   <div id="prompt" class="panel hidden"><b>E</b> – ansehen</div>
-  <div id="dialog" class="panel hidden"><div class="dlg-name"></div><div class="dlg-text"></div><div class="dlg-more"></div></div>
+  <div id="dialog" class="panel hidden"><div class="dlg-name"></div><div class="dlg-text"></div><div class="dlg-choices hidden"></div><div class="dlg-more"></div></div>
   <div id="area" class="panel"></div>
+  <div id="toasts"></div>
+  <div id="banner" class="panel"></div>
+  <div id="death">BESIEGT …</div>
+  <div id="inv" class="panel window hidden"><h2>Inventar</h2><div class="inv-body"></div><div class="hint">Pfeile/WASD wählen · E benutzen · I/Tab/Esc schließen</div></div>
+  <div id="questlog" class="panel window hidden"><h2>Questlog</h2><div class="ql-body"></div><div class="hint">Q/Esc schließen</div></div>
+  <div id="shop" class="panel window hidden"><h2>Antons Krämerladen</h2><div class="shop-body"></div><div class="hint">↑↓ wählen · E kaufen · Esc schließen</div></div>
   <script type="module" src="src/main.js"></script>
 </body>
 </html>
