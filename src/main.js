@@ -18,6 +18,7 @@ import { AudioEngine, TRACK_NAMES } from './audio.js';
 import { Boss, buildBossArt, BOSS_NAME, BOSS_TITLE } from './boss.js';
 import { CHAPTERS, INTRO, OUTRO, CREDITS, MAIN_TITLE, storyTalk, storyMarker } from './story.js';
 import { buildStoryArt } from './tiles-story.js';
+import { buildArc2Art } from './tiles-arc2.js';
 import { ARENA, ARENA_RESPAWN } from './maps/tiefe.js';
 import { makeValueNoise, fbm } from './noise.js';
 
@@ -36,6 +37,7 @@ const dialog = new Dialog($('dialog'));
 const art = buildArt();
 buildExtraArt(art);
 buildStoryArt(art);
+buildArc2Art(art);
 const itemArt = buildItemArt();
 const bossArt = buildBossArt();
 const audio = new AudioEngine();

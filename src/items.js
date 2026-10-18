@@ -23,7 +23,21 @@ export const ITEMS = {
   sprengpulver: { name: 'Sprengpulver', type: 'quest', desc: 'Erwins letztes Fässchen Sprengpulver. Damit lässt sich Geröll wegsprengen. Nicht schütteln!' },
   kristallherz: { name: 'Splitter des Kristallherzens', type: 'quest', desc: 'Ein warm leuchtender, blauer Splitter. Erinnerung an den Sieg über Umbrakor.' },
   grubenlampe: { name: 'Grubenlampe', type: 'equip', slot: 'lamp', desc: 'Erwins alte Lampe. In Höhlen siehst du deutlich weiter.' },
+  // ---- Zweite Geschichte „Die Sternensplitter“
+  karte: { name: 'Karte der Westlande', type: 'quest', desc: 'Selmas Karte, noch voller weißer Flecken. Ganz im Westen hat sie eine Sonne gemalt und ein Fragezeichen.' },
+  dattel: { name: 'Datteln', type: 'use', heal: 4, price: 8, desc: 'Süß und klebrig, frisch aus der Oase. Stellen 2 Herzen wieder her.' },
+  sandlaeufer: { name: 'Sandläufer', type: 'equip', slot: 'boots', price: 60, desc: 'Breite Wüstenstiefel mit Flechtsohle. Damit sinkst du im Treibsand nicht ein.' },
+  enterhaken: { name: 'Enterhaken', type: 'equip', slot: 'hook', desc: 'Ein Wurfhaken an langer Kette. An Pfählen mit Eisenring (E) ziehst du dich über Abgründe.' },
+  steigeisen: { name: 'Steigeisen', type: 'equip', slot: 'grip', desc: 'Frostbarts alte Steigeisen. Auf Eis rutschst du nicht mehr aus.' },
+  sonnensplitter: { name: 'Sonnensplitter', type: 'quest', desc: 'Ein goldener Sternensplitter aus dem Sonnentempel. Er ist warm wie ein Sommertag.' },
+  frostsplitter: { name: 'Frostsplitter', type: 'quest', desc: 'Ein eisblauer Sternensplitter aus der Eisgrotte. Er beschlägt, wenn man ihn anhaucht.' },
+  schiffsteer: { name: 'Schiffsteer', type: 'quest', price: 30, desc: 'Ein Topf zäher, schwarzer Teer. Damit lässt sich ein Boot abdichten.' },
+  wuestenrose: { name: 'Wüstenrose', type: 'quest', desc: 'Eine Blüte aus Sandkristall. Kadir sammelt sie für seine Gäste.' },
+  eiskristall: { name: 'Eiskristall', type: 'material', desc: 'Ein Kristall, der niemals schmilzt. Frostbart kann damit etwas anfangen.' },
+  gezeitenperle: { name: 'Perle der Gezeiten', type: 'quest', desc: 'Thalassas Herz, gereinigt. In ihr rauscht leise das Meer.' },
 };
+/** Ausrüstungs-Slots für Werkzeuge (Zustand in state[slot] = true). */
+export const TOOL_SLOTS = { boots: 'sandlaeufer', hook: 'enterhaken', grip: 'steigeisen' };
 
 function coinIcon(f = 0) {
   // f: Drehphase 0..3 (Breite variiert)
@@ -142,6 +156,39 @@ function lamp() {
   return p.outlined('#1a1410');
 }
 
+function bootsIcon() {
+  const p = new Pix(16, 16);
+  p.rect(4, 3, 5, 8, '#a06a3a'); p.rect(4, 10, 9, 4, '#a06a3a'); p.hline(4, 12, 13, '#5a3a20'); p.hline(3, 13, 14, '#d9b860');
+  p.vline(4, 3, 12, '#7a4a2a'); p.hline(4, 8, 3, '#c98a5a'); for (let y = 5; y < 10; y += 2) p.hline(5, 8, y, '#e8d090');
+  return p.outlined('#2a1a10');
+}
+function hookIcon() {
+  const p = new Pix(16, 16);
+  for (let i = 0; i < 6; i++) { p.set(2 + i, 13 - i, i % 2 ? '#6a6a76' : '#9a9aa8'); }
+  p.vline(9, 2, 8, '#c8c8d2'); p.vline(10, 2, 8, '#8a8a96');
+  p.set(7, 3, '#c8c8d2'); p.set(6, 4, '#c8c8d2'); p.set(12, 3, '#c8c8d2'); p.set(13, 4, '#c8c8d2'); p.hline(7, 12, 2, '#e8e8f0');
+  return p.outlined('#16161c');
+}
+function crampons() {
+  const p = new Pix(16, 16);
+  p.rect(3, 6, 10, 4, '#5a6a7a'); p.hline(3, 12, 6, '#8a9aaa');
+  for (let x = 3; x < 13; x += 2) { p.vline(x, 10, 13, '#c8d2dc'); p.set(x, 14, '#ffffff'); }
+  p.rect(5, 3, 6, 3, '#7a4a2a');
+  return p.outlined('#16161c');
+}
+function shard(c0, c1, c2) {
+  const p = new Pix(16, 16);
+  for (let y = 1; y < 15; y++) { const w = y < 6 ? y * 0.8 : (15 - y) * 0.5; for (let x = Math.round(8 - w); x <= Math.round(8 + w); x++) p.set(x, y, x < 7 ? c0 : x < 9 ? c1 : c2); }
+  p.set(3, 4, '#ffffff'); p.set(12, 8, '#ffffff');
+  return p.outlined('#1a1410');
+}
+function pearl() { const p = new Pix(16, 16); p.ellipse(8, 9, 5, 5, '#c8b8e8'); p.ellipse(8, 8, 4, 4, '#f0e8ff'); p.ellipse(6, 6, 1.5, 1.5, '#ffffff'); return p.outlined('#2a2040'); }
+function tar() { const p = new Pix(16, 16); p.rect(3, 5, 10, 9, '#4a4a52'); p.hline(3, 12, 5, '#6a6a76'); p.ellipse(8, 5, 5, 1.6, '#16161c'); p.set(10, 4, '#4a4a60'); p.vline(5, 6, 13, '#3a3a44'); return p.outlined('#0a0a0e'); }
+function rose() { const p = new Pix(16, 16); for (const [x, y, r] of [[8, 9, 4], [5, 8, 2.5], [11, 8, 2.5], [8, 5, 2.5]]) p.ellipse(x, y, r, r * 0.7, '#d9a872'); p.ellipse(8, 8, 2, 1.5, '#f0d0a0'); p.set(7, 7, '#ffffff'); return p.outlined('#4a3020'); }
+function iceCrystal() { const p = new Pix(16, 16); for (const [x, t] of [[8, 2], [5, 6], [11, 5]]) for (let y = t; y < 14; y++) { p.set(x, y, '#bfe6f6'); p.set(x + 1, y, '#5a9cc4'); } p.set(8, 2, '#ffffff'); return p.outlined('#1a2a3a'); }
+function dates() { const p = new Pix(16, 16); for (const [x, y] of [[5, 7], [9, 6], [7, 10], [11, 10]]) { p.ellipse(x, y, 2.2, 3, '#7a3a1a'); p.set(x - 1, y - 1, '#b0603a'); } p.vline(8, 1, 5, '#6a8a3a'); return p.outlined('#2a1008'); }
+function mapIcon() { const p = new Pix(16, 16); p.rect(2, 3, 12, 10, '#e8d8b0'); for (let x = 2; x < 14; x += 4) p.vline(x, 3, 12, '#c8b890'); p.set(11, 5, '#ffb83a'); p.set(12, 5, '#ffb83a'); p.set(11, 6, '#ffb83a'); p.hline(4, 9, 9, '#a85a32'); p.set(5, 7, '#3a7a9a'); return p.outlined('#3a2a1a'); }
+
 /** Alle Icons als Canvas (16x16) + HUD-Herzen + Münz-Animationsframes. */
 export function buildItemArt() {
   const icons = {
@@ -162,6 +209,9 @@ export function buildItemArt() {
     grubenlampe: lamp().canvas(),
     sprengpulver: powder().canvas(),
     kristallherz: heartShard().canvas(),
+    karte: mapIcon().canvas(), dattel: dates().canvas(), sandlaeufer: bootsIcon().canvas(), enterhaken: hookIcon().canvas(),
+    steigeisen: crampons().canvas(), sonnensplitter: shard('#fff1a6', '#ffffff', '#ffb83a').canvas(), frostsplitter: shard('#e0f8ff', '#ffffff', '#5ab8e8').canvas(),
+    schiffsteer: tar().canvas(), wuestenrose: rose().canvas(), eiskristall: iceCrystal().canvas(), gezeitenperle: pearl().canvas(),
   };
   return {
     icons,

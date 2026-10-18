@@ -189,6 +189,9 @@ export function generateWorld(seed = DEFAULT_SEED) {
   carve([[52, 29], [40, 29], [30, 29]], 2, 0);
   carve([[30, 29], [18, 31]], 2, 4);
   carve([[18, 31], [17, 46]], 2, 3); // runter zum See -> Steg
+  // Alter Westpfad (zweite Geschichte): hinauf durch den Westwald zur Sonnenwüste
+  carve([[18, 31], [10, 30], [10, 22]], 2, 0);
+  carve([[10, 22], [0, 22]], 2, 0);
   carve([[63, 29], [75, 29], [79, 29]], 2, 0);
   carve([[79, 29], [90, 32]], 2, 5);
   carve([[90, 32], [95, 32]], 2, 0);   // -> Graufels-Berge (Osten)
@@ -251,8 +254,8 @@ export function generateWorld(seed = DEFAULT_SEED) {
   // ---- 8) Objekte
   const objects = [];
   const interact = [];
-  function place(sprite, tx, ty, fw = 1, fh = 1, solidFrom = 0) {
-    objects.push({ sprite, tx, ty, fw, fh });
+  function place(sprite, tx, ty, fw = 1, fh = 1, solidFrom = 0, extra = {}) {
+    objects.push({ sprite, tx, ty, fw, fh, solidFrom, ...extra });
     for (let y = ty; y < ty + fh; y++)
       for (let x = tx; x < tx + fw; x++) {
         if (!inb(x, y)) continue;
@@ -296,6 +299,12 @@ export function generateWorld(seed = DEFAULT_SEED) {
   interact.push({ x: 92, y: 30, text: '→ Graufels-Berge & alte Kristallmine' });
   place('sign', 59, 67);
   interact.push({ x: 59, y: 67, text: '↓ Möwenbucht – Strand, Leuchtturm & frische Brise' });
+  // Schlagbaum am Westpfad – öffnet sich mit dem Beginn der zweiten Geschichte
+  place('barrier', 9, 25, 3, 1, 0, { hideIf: 'a2_west' });
+  for (const x of [7, 8, 12, 13]) place('bush' + (x % 2), x, 25);
+  place('sign', 13, 28);
+  interact.push({ x: 13, y: 28, text: '← Alter Karawanenweg zur Sonnenwüste. Gesperrt seit dem großen Sandsturm. (gez. Dorfrat)' });
+  exits.push({ x: 0, y: 22, w: 1, h: 2, to: 'wueste', tx: 78, ty: 28.5, dir: 'left', kind: 'edge' });
   place('sign', 19, 36);
   interact.push({ x: 19, y: 36, text: 'Zum Steg am Spiegelsee. Angeln verboten! (Noch.)' });
 
@@ -363,6 +372,7 @@ export function generateWorld(seed = DEFAULT_SEED) {
     if (g === T.BRIDGE) return Math.hypot(tx - LAKE.x, ty - LAKE.y) < LAKE.r + 4 ? 'Steg am Spiegelsee' : 'Holzbrücke';
     if (inVillage(tx, ty)) return 'Pixeldorf';
     if (g === T.SAND) return Math.hypot(tx - LAKE.x, ty - LAKE.y) < LAKE.r + 5 ? 'Seeufer' : 'Flussufer';
+    if (g === T.DIRT && tx < 14 && ty < 30) return 'Alter Karawanenweg';
     if (g === T.FOREST) return tx > W / 2 ? 'Ostwald' : 'Westwald';
     if (g === T.DIRT) return 'Feldweg';
     if (g === T.FLOWER) return 'Blumenwiese';
@@ -390,7 +400,7 @@ export function generateWorld(seed = DEFAULT_SEED) {
   }
 
   return {
-    id: 'village', pickups, chests: [], enemies: [], inb, get, name: 'Pixeldorf', kind: 'outdoor', styles: {}, ambience: {}, decals: [], lights: [], bg: '#1b2a1e',
+    id: 'village', pickups, chests: [], enemies: [], inb, get, idx, name: 'Pixeldorf', kind: 'outdoor', styles: {}, ambience: {}, decals: [], lights: [], bg: '#1b2a1e',
     exits, npcs,
     W, H, seed, ground, solid, objects, interact,
     spawn: { x: 57.5 * 16 + 8, y: 31 * 16 + 12 },

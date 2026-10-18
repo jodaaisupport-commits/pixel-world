@@ -19,12 +19,15 @@ export class Player {
     this.inv = 0;         // Unverwundbarkeit nach Treffer (Blinken)
     this.sword = null;    // Schwert-Sprite (Canvas) oder null
     this.dead = false;
+    this.speedMul = 1;    // Bremsfaktor (z. B. Treibsand)
+    this.ice = false;     // auf Eis: träge Beschleunigung, Weiterrutschen
+    this.svx = 0; this.svy = 0;
   }
   get sortY() { return this.y; }
   startAttack() { if (this.atk || this.kbt > 0) return false; this.atk = { t: 0, dur: 0.26, hit: new Set() }; return true; }
   knockback(fromX, fromY, power = 170) {
     const dx = this.x - fromX, dy = this.y - fromY, l = Math.hypot(dx, dy) || 1;
-    this.kbx = (dx / l) * power; this.kby = (dy / l) * power; this.kbt = 0.16;
+    this.kbx = (dx / l) * power; this.kby = (dy / l) * power; this.kbt = 0.16; this.svx = this.svy = 0;
   }
   /** Trefferfläche des Schwerts in Welt-Pixeln (abhängig von Blickrichtung und Reichweite). */
   swordBox(reach = 0) {
@@ -86,6 +89,7 @@ export class Player {
     if (input.down) vy += 1;
     const wants = vx !== 0 || vy !== 0;
     const ox = this.x, oy = this.y;
+    let tvx = 0, tvy = 0;
     if (wants) {
       // Blickrichtung: aktuelle Richtung behalten, wenn sie noch gedrückt ist
       const want = [];
@@ -93,16 +97,22 @@ export class Player {
       if (vx < 0) want.push('left'); if (vx > 0) want.push('right');
       if (!want.includes(this.dir) && !this.atk) this.dir = vx !== 0 ? (vx < 0 ? 'left' : 'right') : (vy < 0 ? 'up' : 'down');
       const len = Math.hypot(vx, vy);
-      const sp = this.speed * (input.run ? 1.65 : 1) * (this.atk ? 0.35 : 1) * dt;
-      this.moveAxis(world, (vx / len) * sp, 0);
-      this.moveAxis(world, 0, (vy / len) * sp);
+      const sp = this.speed * (input.run ? 1.65 : 1) * (this.atk ? 0.35 : 1) * this.speedMul;
+      tvx = (vx / len) * sp; tvy = (vy / len) * sp;
     }
+    if (this.ice) { // Eis: Schwung aufbauen und nur langsam abbremsen
+      const k = 1 - Math.exp(-dt * (wants ? 2.4 : 0.9));
+      this.svx += (tvx - this.svx) * k; this.svy += (tvy - this.svy) * k;
+    } else { this.svx = tvx; this.svy = tvy; }
+    if (Math.abs(this.svx) > 0.5 && !this.moveAxis(world, this.svx * dt, 0) && this.ice) this.svx = 0;
+    if (Math.abs(this.svy) > 0.5 && !this.moveAxis(world, 0, this.svy * dt) && this.ice) this.svy = 0;
     // Kartengrenzen
     this.x = Math.max(HB.hw, Math.min(world.W * TS - HB.hw, this.x));
     this.y = Math.max(HB.h, Math.min(world.H * TS, this.y));
     // Animation nur, wenn sich die Figur tatsächlich bewegt hat (nicht beim Laufen gegen Wände)
     const moved = Math.hypot(this.x - ox, this.y - oy);
     this.moving = wants && moved > 0.05 * (dt * 60);
+    this.sliding = this.ice && moved > 0.4 * (dt * 60);
     if (this.moving) this.anim += dt * (input.run ? 12 : 8);
     else this.anim = 0;
   }

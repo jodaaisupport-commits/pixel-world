@@ -3,6 +3,7 @@
 import { T, RAISED } from './map.js';
 import { PAL, TS } from './tiles.js';
 import { APAL } from './tiles-areas.js';
+import { WPAL } from './tiles-arc2.js';
 import { hash2 } from './noise.js';
 
 export const WATER_FRAMES = 4;
@@ -11,6 +12,7 @@ export const WATER_FRAMES = 4;
 const PRI = {
   [T.DEEP]: 0, [T.WATER]: 1, [T.SWAMP]: 1, [T.SAND]: 2, [T.DIRT]: 3, [T.STONE]: 3, [T.FARM]: 3, [T.ROCKY]: 3, [T.CAVE]: 3,
   [T.GRASS]: 4, [T.FLOWER]: 4, [T.DGRASS]: 4, [T.SNOW]: 4.5, [T.FOREST]: 5, [T.DFOREST]: 5, [T.BRIDGE]: -1,
+  [T.CHASM]: -0.5, [T.QSAND]: 1.5, [T.ICE]: 1.2, [T.DUNE]: 2.5, [T.RUIN]: 3.2, [T.TEMPLE]: 3.1,
 };
 const pri = (t) => (PRI[t] === undefined ? -1 : PRI[t]);
 const UPPER = {
@@ -19,6 +21,8 @@ const UPPER = {
   [T.GRASS]: [PAL.g1, PAL.g2, PAL.g0], [T.FLOWER]: [PAL.g1, PAL.g2, PAL.g0], [T.FOREST]: [PAL.f1, PAL.f2, PAL.f0],
   [T.DGRASS]: [APAL.dg1, APAL.dg2, APAL.dg0], [T.DFOREST]: [APAL.df1, APAL.df2, APAL.df0],
   [T.ROCKY]: [APAL.rk1, APAL.rk2, APAL.rk0], [T.SNOW]: [APAL.sn1, APAL.sn2, APAL.sn0], [T.CAVE]: [APAL.cv1, APAL.cv2, APAL.cv0],
+  [T.DUNE]: [WPAL.du1, WPAL.du2, WPAL.du0], [T.QSAND]: [WPAL.qs2, WPAL.qs1, WPAL.qs0], [T.RUIN]: [WPAL.ru2, WPAL.ru3, WPAL.ru0],
+  [T.ICE]: [WPAL.ic1, WPAL.ic2, WPAL.ic0], [T.TEMPLE]: [WPAL.tp2, WPAL.tp3, WPAL.tp0], [T.CHASM]: [WPAL.ch0, null, null],
 };
 const LOWER_RIM = (lower, phase) => {
   switch (lower) {
@@ -32,6 +36,12 @@ const LOWER_RIM = (lower, phase) => {
     case T.ROCKY: return [APAL.rk0];
     case T.CAVE: return [APAL.cv0];
     case T.SNOW: return [APAL.sn0];
+    case T.DUNE: return [WPAL.du0];
+    case T.QSAND: return [WPAL.qs0];
+    case T.RUIN: return [WPAL.ru0];
+    case T.ICE: return [WPAL.ic0, '#ffffff'];
+    case T.TEMPLE: return [WPAL.tp0];
+    case T.CHASM: return ['#a9b8cc', '#5d6a7c', WPAL.ch1];
     default: return [];
   }
 };
@@ -42,7 +52,7 @@ const OPP = { N: 'S', S: 'N', E: 'W', W: 'E' };
 
 function raisedStyle(map, t, y = 99) {
   if (t === T.CLIFF) return map.styles.snowLine && y < map.styles.snowLine ? 'cliffSnow' : (map.styles.cliff || 'cliff');
-  if (t === T.CAVEWALL) return 'cave';
+  if (t === T.CAVEWALL) return map.styles.cavewall || 'cave';
   if (t === T.WALL) return map.styles.wall || 'wall_zuhause';
   return null;
 }
@@ -70,6 +80,12 @@ function baseTile(art, map, t, x, y, f) {
     case T.FLAG: return tl.flag[Math.floor(h * 2)];
     case T.MAT: return tl.mat[map.styles.mat || map.styles.floor] || tl.mat.wood;
     case T.VOID: return tl.void;
+    case T.DUNE: return tl.dune[h < 0.6 ? 0 : h < 0.88 ? 1 : 2];
+    case T.QSAND: return tl.qsand[f][Math.floor(h * 2)];
+    case T.RUIN: return tl.ruin[h < 0.55 ? 0 : h < 0.92 ? 1 : 2];
+    case T.ICE: return tl.ice[h < 0.6 ? 0 : h < 0.85 ? 1 : 2];
+    case T.CHASM: return tl.chasm[Math.floor(h * 2)];
+    case T.TEMPLE: return tl.temple[h < 0.7 ? 0 : h < 0.85 ? 1 : 2];
     default: return tl.grass[0];
   }
 }
@@ -236,6 +252,7 @@ const MINI = {
   [T.DGRASS]: '#2c5747', [T.DFOREST]: '#162a25', [T.SWAMP]: '#33594b', [T.ROCKY]: '#958a7d', [T.CLIFF]: '#5b524b',
   [T.SNOW]: '#e6edf5', [T.WOOD]: '#9c7046', [T.WALL]: '#3a2a20', [T.FLAG]: '#7c7771', [T.CAVE]: '#3a3242',
   [T.CAVEWALL]: '#120e16', [T.VOID]: '#000000', [T.MAT]: '#a63c33',
+  [T.DUNE]: '#e2ad66', [T.QSAND]: '#94683a', [T.RUIN]: '#cfac74', [T.ICE]: '#9fd4ec', [T.CHASM]: '#05070e', [T.TEMPLE]: '#407070',
 };
 export function buildMinimap(map) {
   const c = document.createElement('canvas');
@@ -245,8 +262,9 @@ export function buildMinimap(map) {
     for (let x = 0; x < map.W; x++) { ctx.fillStyle = MINI[map.tileAt(x, y)] || '#000'; ctx.fillRect(x, y, 1, 1); }
   for (const o of map.objects) {
     const s = o.sprite;
-    if (/oak|pine|palm|deadtree/.test(s)) ctx.fillStyle = '#1b4127';
-    else if (s.startsWith('house') || s === 'hut' || s === 'lighthouse') ctx.fillStyle = '#b84b3b';
+    if (/oak|pine|palm|deadtree|cactus/.test(s)) ctx.fillStyle = '#1b4127';
+    else if (s.startsWith('house') || s.startsWith('adobe') || s === 'hut' || s === 'lighthouse' || s === 'cabin') ctx.fillStyle = '#b84b3b';
+    else if (/ruinpillar|obelisk|tpillar/.test(s)) ctx.fillStyle = '#8a6a42';
     else if (s.startsWith('crystal')) ctx.fillStyle = '#9ef0ff';
     else if (map.kind === 'interior') ctx.fillStyle = '#6e4628';
     else continue;

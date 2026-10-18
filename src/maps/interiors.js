@@ -5,7 +5,7 @@ import { TS } from '../pix.js';
 
 const W = 13, H = 10, DOOR_X = 6;
 
-function room({ id, name, floor, outside, dark = 0.22 }) {
+export function room({ id, name, floor, outside, dark = 0.22, to = 'village' }) {
   const m = createMap({
     id, name, W, H, fill: T.WALL, kind: 'interior',
     styles: { floor: floor === 'flag' ? 'schmiede' : id, wall: 'wall_' + id, mat: id },
@@ -13,12 +13,12 @@ function room({ id, name, floor, outside, dark = 0.22 }) {
   });
   m.fill(1, 3, W - 2, H - 2, floor === 'flag' ? T.FLAG : T.WOOD);
   m.set(DOOR_X, H - 1, T.MAT);
-  m.exit(DOOR_X, H - 1, 1, 1, 'village', outside[0], outside[1], 'down', 'door');
+  m.exit(DOOR_X, H - 1, 1, 1, to, outside[0], outside[1], 'down', 'door');
   m.spawn = { x: DOOR_X * TS + 8, y: (H - 2) * TS + 12 };
   m.bg = '#0b0706';
   return m;
 }
-const wallDecal = (m, sprite, tx, py = 18) => m.decal(sprite, tx * TS, py);
+export const wallDecal = (m, sprite, tx, py = 18) => m.decal(sprite, tx * TS, py);
 
 function taverne() {
   const m = room({ id: 'taverne', name: 'Taverne „Zum Goldenen Krug“', floor: 'wood', outside: [46, 26] });

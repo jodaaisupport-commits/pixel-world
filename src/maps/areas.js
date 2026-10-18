@@ -156,6 +156,9 @@ export function berge() {
   };
   path([[0, 23], [12, 24], [22, 20], [33, 15], [40, 10]]);
   path([[12, 24], [16, 32]], 2);
+  // Pass nach Osten zu den Frosthöhen (zweite Geschichte)
+  for (let y = 12; y <= 17; y++) for (let x = 54; x < W; x++) if (Math.abs(y - 14.5) < 2.2 - (x < 56 ? 0.8 : 0)) m.set(x, y, T.SNOW);
+  carvePath(m, [[47, 12], [55, 14], [63, 14]], { width: 2, wobble: 1, noise: n, onTile: (x, y) => { m.set(x, y, T.SNOW); markAround(m, noTree, x - 1, y - 2, x + 1, y + 2); } });
   // Klippen säubern: zu dünne Felsstücke entfernen (Front braucht >= 3 Tiles Höhe)
   for (let pass = 0; pass < 2; pass++)
     for (let x = 0; x < W; x++) {
@@ -191,6 +194,9 @@ export function berge() {
     else if (h < 0.03 && t === T.ROCKY) m.place('rock' + (h < 0.02 ? 0 : 1), x, y);
   }
   m.exit(0, 23, 1, 2, 'village', 93, 32, 'left');
+  m.exit(W - 1, 14, 1, 2, 'frost', 1.5, 22.5, 'right');
+  m.place('sign', 58, 12);
+  m.interact.push({ x: 58, y: 12, text: '→ Frosthöhen. Nur mit warmer Kleidung! Eremit Frostbart wohnt hinter der Gletscherspalte.' });
   m.spawn = { x: 2 * TS + 8, y: 24 * TS + 12 };
   // Mehr Leben in den Bergen: Lager, Steinmännchen, Erzadern, tote Büsche, Bergblumen
   const land = (t) => t === T.ROCKY || t === T.GRASS || t === T.SNOW;
@@ -232,6 +238,7 @@ export function berge() {
     const t = m.get(tx, ty);
     if (tx >= 35 && tx <= 46 && ty <= 13) return 'Alte Kristallmine';
     if (Math.hypot((tx - 18) / 6, (ty - 36) / 5) < 1) return 'Bergsee';
+    if (tx >= 52 && ty >= 10 && ty <= 18) return 'Frostpass';
     if (t === T.SNOW) return 'Schneefeld';
     if (t === T.GRASS) return 'Almwiese';
     return 'Graufels-Berge';
@@ -270,7 +277,8 @@ export function kueste() {
   const sy = Math.round(shore(45));
   for (let y = sy - 1; y < sy + 6; y++) for (const x of [45, 46]) if (m.get(x, y) !== T.GRASS) m.set(x, y, T.BRIDGE);
   m.decal('boat', 47 * TS + 2, (sy + 3) * TS + 2);
-  m.interact.push({ x: 46, y: sy + 4, text: 'Jans altes Ruderboot. Ein Leck, so groß wie eine Faust. Heute fährt hier niemand raus.' });
+  m.interact.push({ x: 46, y: sy + 4, id: 'boot', text: 'Jans altes Ruderboot. Ein Leck, so groß wie eine Faust. Heute fährt hier niemand raus.' });
+  m.dock = { x: 46, y: sy + 4 };
   // Strandhütte, Sandburg, Palmen, Felsen, Seesterne
   const hy = Math.round(shore(22)) - 6;
   m.place('hut', 21, hy, 3, 3, 1);

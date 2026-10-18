@@ -154,17 +154,27 @@ export const ROCK_STYLES = {
   cliff: { top: '#8c8173', topL: '#a39888', topD: '#73695e', face: '#6f6458', faceL: '#8a7e70', faceD: '#4f463e', ledge: '#b5aa99', base: '#3a332d', moss: '#4e7a45', tuft: '#5e8a4a', tuftL: '#7aa860', rim: '#4a423a' },
   cliffSnow: { top: '#c9d4e2', topL: '#eef3f9', topD: '#a9b8cc', face: '#6f6a6a', faceL: '#8c8787', faceD: '#4c4848', ledge: '#f4f8fc', base: '#383434', rim: '#5d6a7c', snowTop: true },
   cave: { top: '#0d0a11', topL: '#15111a', topD: '#08060b', face: '#4a3f55', faceL: '#665a74', faceD: '#2c2533', ledge: '#8a7aa0', base: '#16121a', rim: '#5a4c6a' },
+  // Zweite Geschichte
+  canyon: { top: '#c47a42', topL: '#d9925a', topD: '#a8643a', face: '#a0522d', faceL: '#bc6a3e', faceD: '#743a20', ledge: '#e8a870', base: '#4a2414', rim: '#7a3e22', tuft: '#a8a050', tuftL: '#c8c070' },
+  sandstone: { top: '#2a1c10', topL: '#3a2818', topD: '#1a1008', face: '#a8844e', faceL: '#c8a46a', faceD: '#76582e', ledge: '#e4c892', base: '#3a2810', rim: '#8a6a42' },
+  ice: { top: '#0c1a2a', topL: '#14283e', topD: '#081220', face: '#5a9cc4', faceL: '#8cc8e6', faceD: '#3a6a92', ledge: '#effbff', base: '#10283a', rim: '#6aaad0' },
+  icecliff: { top: '#c9d4e2', topL: '#eef3f9', topD: '#a9b8cc', face: '#6a8aa8', faceL: '#8cb0cc', faceD: '#4a6a88', ledge: '#f4f8fc', base: '#2a3a4c', rim: '#5d7a9c', snowTop: true },
+  temple: { top: '#061214', topL: '#0c1c1e', topD: '#030a0b', face: '#2e5254', faceL: '#407070', faceD: '#1a3234', ledge: '#7ab0a8', base: '#081416', rim: '#3a6a68', moss: '#2f6a4a' },
 };
 export const WALL_STYLES = {
   taverne: { paper: '#8a4a3a', paperD: '#7a3f31', beam: '#4a2e1c', beamD: '#2e1c11', wood: '#5a3a22', woodL: '#7d5432', woodD: '#3d2616', base: '#24160d', dots: null, top: '#24170f' },
   kraemer: { paper: '#5e7a52', paperD: '#526c47', beam: '#5a3a22', beamD: '#3d2616', wood: '#7a5232', woodL: '#9a6a40', woodD: '#55371f', base: '#2e1d10', dots: '#7a9a68', top: '#2b1d14' },
   zuhause: { paper: '#d9c9a3', paperD: '#cbb98f', beam: '#6a4426', beamD: '#4a2e18', wood: '#8c5e36', woodL: '#b07e4c', woodD: '#5e3d22', base: '#3a2616', dots: '#c98a8a', top: '#2d1f17' },
   schmiede: { brick: true, paper: '#6e6a66', paperL: '#86817c', paperD: '#4f4b48', beam: '#3a2a20', base: '#1d1a18', top: '#1e1b19' },
+  oase_gasthaus: { paper: '#d6a46c', paperD: '#c4925c', beam: '#7a4a2a', beamD: '#5a3420', wood: '#8a5a32', woodL: '#b07a4a', woodD: '#5e3d22', base: '#3a2214', dots: '#2f6aa8', top: '#2d1a10' },
+  oase_laden: { paper: '#c88a5a', paperD: '#b47a4c', beam: '#6b4228', beamD: '#4a2c18', wood: '#7a4a2a', woodL: '#a06a40', woodD: '#55331c', base: '#2e1a0e', dots: '#d9b860', top: '#2a180c' },
 };
 const FLOOR_PALS = {
   taverne: ['#5a3a22', '#7a5030', '#8e6038', '#9e6e42'],
   kraemer: ['#6b4429', '#8a5a36', '#a06a40', '#b8804f'],
   zuhause: ['#7a5636', '#9c7046', '#b38452', '#c49660'],
+  oase_gasthaus: ['#8a4a2a', '#a85a32', '#c06a3a', '#d8844e'],
+  oase_laden: ['#6b4a2b', '#8a6440', '#a07a4c', '#b8925e'],
 };
 
 // ---------------------------------------------------------------- Bäume & Natur
@@ -597,6 +607,8 @@ export function buildAreaArt(art) {
     taverne: matTile(woodFloor(0, FLOOR_PALS.taverne), ['#2f4a85', '#456db3']).canvas(),
     kraemer: matTile(woodFloor(0, FLOOR_PALS.kraemer), ['#7a2c2a', '#a63c33']).canvas(),
     zuhause: matTile(woodFloor(0, FLOOR_PALS.zuhause), ['#3f6a3a', '#5a8a4c']).canvas(),
+    oase_gasthaus: matTile(woodFloor(0, FLOOR_PALS.oase_gasthaus), ['#2f4a85', '#e8c84a']).canvas(),
+    oase_laden: matTile(woodFloor(0, FLOOR_PALS.oase_laden), ['#b83a3a', '#e8c84a']).canvas(),
     schmiede: matTile(flagFloor(0), ['#4a3a2a', '#6b5238']).canvas(),
     cave: (() => { const p = new Pix(16, 16); p.d.set(speck(1800, APAL.cv1, [[APAL.cv0, 6]]).d); return p.canvas(); })(),
   };

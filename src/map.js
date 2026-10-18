@@ -5,9 +5,11 @@ export const T = {
   GRASS: 0, FLOWER: 1, FOREST: 2, DIRT: 3, SAND: 4, WATER: 5, DEEP: 6, STONE: 7, BRIDGE: 8, FARM: 9,
   DGRASS: 10, DFOREST: 11, SWAMP: 12, ROCKY: 13, CLIFF: 14, SNOW: 15,
   WOOD: 16, WALL: 17, FLAG: 18, CAVE: 19, CAVEWALL: 20, VOID: 21, MAT: 22,
+  // Zweite Geschichte
+  DUNE: 23, QSAND: 24, RUIN: 25, ICE: 26, CHASM: 27, TEMPLE: 28,
 };
 /** Tiles, die immer blockieren. */
-export const SOLID_TILES = new Set([T.WATER, T.DEEP, T.SWAMP, T.CLIFF, T.WALL, T.CAVEWALL, T.VOID]);
+export const SOLID_TILES = new Set([T.WATER, T.DEEP, T.SWAMP, T.CLIFF, T.WALL, T.CAVEWALL, T.VOID, T.CHASM]);
 /** "Erhabene" Tiles mit Ober-/Frontseite (Klippen, Höhlen- und Innenwände). */
 export const RAISED = new Set([T.CLIFF, T.CAVEWALL, T.WALL, T.VOID]);
 

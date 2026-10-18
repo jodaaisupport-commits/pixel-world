@@ -139,6 +139,22 @@ const SFX = {
   summon(c, o, t) { for (let i = 0; i < 6; i++) tone(c, o, { inst: 'sine', freq: 300 + i * 90, t: t + i * 0.06, dur: 0.12, vol: 0.06, vib: 0.03 }); },
   gate(c, o, t) { tone(c, o, { inst: 'saw', freq: 55, t, dur: 1.2, vol: 0.1, lp: 500, slide: 1.3 }); noise(c, o, { t, dur: 1.2, vol: 0.15, type: 'lowpass', f: 400 }); [523, 784, 1047, 1568].forEach((f, i) => tone(c, o, { inst: 'sine', freq: f, t: t + 0.6 + i * 0.1, dur: 0.4, vol: 0.06 })); },
   pulse(c, o, t) { tone(c, o, { inst: 'sine', freq: 60, t, dur: 0.9, vol: 0.35, slide: 0.6 }); tone(c, o, { inst: 'triangle', freq: 233, t, dur: 0.9, vol: 0.08, vib: 0.06 }); noise(c, o, { t, dur: 0.9, vol: 0.08, type: 'lowpass', f: 300 }); },
+  // ---- Zweite Geschichte
+  sink(c, o, t) { tone(c, o, { inst: 'sine', freq: 180, t, dur: 0.5, vol: 0.18, slide: 0.4, vib: 0.08 }); noise(c, o, { t, dur: 0.5, vol: 0.08, type: 'lowpass', f: 500, f2: 150 }); },
+  slide(c, o, t) { noise(c, o, { t, dur: 0.35, vol: 0.06, type: 'bandpass', f: 3200, f2: 1800, q: 3 }); },
+  hook(c, o, t) { noise(c, o, { t, dur: 0.12, vol: 0.12, type: 'bandpass', f: 1200, f2: 4000, q: 2 }); for (let i = 0; i < 6; i++) tone(c, o, { inst: 'square', freq: 1800 + (i % 2) * 500, t: t + 0.08 + i * 0.045, dur: 0.025, vol: 0.04 }); tone(c, o, { inst: 'triangle', freq: 300, t: t + 0.36, dur: 0.1, vol: 0.12, slide: 0.6 }); },
+  splash(c, o, t) { noise(c, o, { t, dur: 0.45, vol: 0.18, type: 'bandpass', f: 1800, f2: 500, q: 0.8 }); tone(c, o, { inst: 'sine', freq: 500, t, dur: 0.1, vol: 0.08, slide: 2 }); },
+  wave(c, o, t) { noise(c, o, { t, dur: 1.4, vol: 0.22, type: 'lowpass', f: 300, f2: 2200, a: 0.5 }); noise(c, o, { t: t + 0.6, dur: 0.9, vol: 0.12, type: 'highpass', f: 2500 }); },
+  wind(c, o, t) { noise(c, o, { t, dur: 1.6, vol: 0.08, type: 'bandpass', f: 600, f2: 1400, q: 4, a: 0.6 }); },
+  burrow(c, o, t) { noise(c, o, { t, dur: 0.55, vol: 0.16, type: 'lowpass', f: 400, f2: 120 }); tone(c, o, { inst: 'sine', freq: 55, t, dur: 0.5, vol: 0.25, vib: 0.1 }); },
+  burrowUp(c, o, t) { noise(c, o, { t, dur: 0.3, vol: 0.2, type: 'bandpass', f: 900, f2: 2400, q: 1 }); tone(c, o, { inst: 'triangle', freq: 120, t, dur: 0.2, vol: 0.18, slide: 2 }); },
+  roll(c, o, t) { noise(c, o, { t, dur: 0.6, vol: 0.08, type: 'bandpass', f: 2600, q: 5 }); tone(c, o, { inst: 'triangle', freq: 400, t, dur: 0.15, vol: 0.06, slide: 1.6 }); },
+  bonk(c, o, t) { tone(c, o, { inst: 'square', freq: 200, t, dur: 0.08, vol: 0.12, slide: 0.5 }); tone(c, o, { inst: 'triangle', freq: 1400, t: t + 0.05, dur: 0.2, vol: 0.05, vib: 0.05 }); },
+  freeze(c, o, t) { for (let i = 0; i < 6; i++) tone(c, o, { inst: 'sine', freq: 2093 * 2 ** (-i / 6), t: t + i * 0.05, dur: 0.18, vol: 0.05 }); noise(c, o, { t, dur: 0.3, vol: 0.06, type: 'highpass', f: 6000 }); },
+  bubble(c, o, t) { for (let i = 0; i < 3; i++) tone(c, o, { inst: 'sine', freq: 400 + Math.random() * 500, t: t + i * 0.07, dur: 0.06, vol: 0.06, slide: 1.8 }); },
+  chime(c, o, t) { [988, 1319, 1568, 1976, 2637].forEach((f, i) => tone(c, o, { inst: 'sine', freq: f, t: t + i * 0.09, dur: 0.9 - i * 0.1, vol: 0.06, vib: 0.01 })); },
+  tide(c, o, t) { SFX.wave(c, o, t); tone(c, o, { inst: 'saw', freq: 65, t, dur: 1.4, vol: 0.06, lp: 400, slide: 1.4 }); },
+  boat(c, o, t) { noise(c, o, { t, dur: 0.6, vol: 0.08, type: 'bandpass', f: 700, f2: 1400, q: 1.5 }); tone(c, o, { inst: 'triangle', freq: 140, t, dur: 0.1, vol: 0.08 }); },
 };
 
 // ---------------------------------------------------------------- Engine
