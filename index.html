@@ -2,11 +2,21 @@
 <html lang="de">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+  <meta name="theme-color" content="#20161a" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Pixel World" />
+  <meta name="format-detection" content="telephone=no" />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
   <title>Pixel World – Prototyp</title>
-  <link rel="icon" href="data:," />
+  <link rel="icon" type="image/png" href="icons/favicon-32.png" />
   <style>
-    html, body { margin: 0; height: 100%; overflow: hidden; background: #14100f; }
+    html, body { margin: 0; height: 100%; overflow: hidden; background: #14100f; touch-action: none; overscroll-behavior: none;
+      -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; -webkit-tap-highlight-color: transparent; -webkit-text-size-adjust: 100%; }
+    body { position: fixed; inset: 0; }
     canvas#game { display: block; image-rendering: pixelated; image-rendering: crisp-edges; }
     .panel {
       position: fixed; color: #f7eedc; background: rgba(32, 22, 26, 0.82);
@@ -133,6 +143,53 @@
     #credits .cr-end { position: absolute; bottom: 3vh; right: 3vw; z-index: 2; color: #cfc2a8; font-size: 12px; background: rgba(8,6,14,0.85); border: 2px solid #3a2c52; padding: 6px 12px; }
     #credits .cr-stars { position: absolute; inset: 0; background-image: radial-gradient(1px 1px at 10% 20%, #fff, transparent), radial-gradient(1px 1px at 70% 30%, #fff, transparent), radial-gradient(2px 2px at 40% 70%, #d9b8ff, transparent), radial-gradient(1px 1px at 85% 80%, #fff, transparent), radial-gradient(1px 1px at 25% 85%, #bfeaff, transparent), radial-gradient(2px 2px at 55% 15%, #ffe14d, transparent); opacity: 0.7; }
 
+      /* ---------- Antippen: Fenster/Dialog/Zwischensequenzen nehmen Eingaben an */
+    #dialog, .window { pointer-events: auto; }
+    #dialog { z-index: 10; cursor: pointer; } .window { z-index: 12; } #cine, #credits { z-index: 20; pointer-events: auto; }
+    #dialog .dlg-choices div { padding: 3px 0; cursor: pointer; }
+    .window .slot[data-i], .window .shop-row, .window .opt-row { cursor: pointer; }
+    .win-close { position: absolute; top: 6px; right: 8px; width: 34px; height: 34px; padding: 0; border: 3px solid #f7eedc; background: #20161a; color: #ffe14d;
+      font: bold 16px/1 ui-monospace, monospace; cursor: pointer; box-shadow: 0 0 0 2px #20161a; }
+    .win-close:active { background: #4a3036; }
+    /* ---------- Touch-Steuerung */
+    #touch { position: fixed; inset: 0; pointer-events: none; z-index: 5; }
+    #touch.hidden { display: none; }
+    .t-zone { position: absolute; left: 0; bottom: 0; width: 46%; height: 72%; pointer-events: auto; touch-action: none; }
+    .t-stick { position: absolute; left: calc(26px + env(safe-area-inset-left)); bottom: calc(26px + env(safe-area-inset-bottom)); width: 120px; height: 120px; opacity: 0.6; transition: opacity 0.15s; }
+    #touch.stick-on .t-stick { opacity: 1; transition: none; }
+    .t-base, .t-knob, .t-btn, .t-sm { background: transparent no-repeat center / 100% 100%; image-rendering: pixelated; }
+    .t-base { position: absolute; inset: 0; }
+    .t-knob { position: absolute; left: 33px; top: 33px; width: 54px; height: 54px; }
+    .t-btn, .t-sm { position: absolute; border: 0; padding: 0; margin: 0; pointer-events: auto; touch-action: none; outline: none; opacity: 0.92; }
+    .t-btn { width: 78px; height: 78px; }
+    .t-btns { position: absolute; right: calc(18px + env(safe-area-inset-right)); bottom: calc(18px + env(safe-area-inset-bottom)); width: 168px; height: 128px; }
+    .t-a { right: 0; top: 0; } .t-b { left: 0; bottom: 0; }
+    .t-small, .t-top { position: absolute; display: flex; gap: 8px; }
+    .t-small { right: calc(16px + env(safe-area-inset-right)); bottom: calc(158px + env(safe-area-inset-bottom)); }
+    .t-top { right: calc(10px + env(safe-area-inset-right)); top: calc(10px + env(safe-area-inset-top)); }
+    .t-sm { position: relative; width: 45px; height: 45px; }
+    .t-btn.down, .t-sm.down { transform: translateY(3px); filter: brightness(0.8); }
+    body.cinema #touch { display: none; }
+    body.menu-open #touch .t-stick, body.menu-open #touch .t-btns, body.menu-open #touch .t-small, body.menu-open #touch .t-zone { display: none; }
+    body.letterbox #touch .t-small, body.letterbox #touch .t-b, body.letterbox #touch .t-stick { visibility: hidden; }
+    /* ---------- Layout auf Touch-Geräten */
+    body.touch #help, body.touch .window .hint, body.touch .opt-keys { display: none; }
+    body.touch #hud { top: calc(8px + env(safe-area-inset-top)); left: calc(8px + env(safe-area-inset-left)); transform: scale(0.82); transform-origin: top left; }
+    body.touch #minimap { top: calc(64px + env(safe-area-inset-top)); right: calc(10px + env(safe-area-inset-right)); }
+    body.touch #minimap canvas { width: 128px; height: 96px; }
+    body.touch #toasts { top: calc(64px + env(safe-area-inset-top)); right: calc(150px + env(safe-area-inset-right)); max-width: 46vw; }
+    body.touch #prompt { bottom: calc(18px + env(safe-area-inset-bottom)); }
+    body.touch #dialog { left: calc(12px + env(safe-area-inset-left)); right: calc(196px + env(safe-area-inset-right)); bottom: calc(14px + env(safe-area-inset-bottom));
+      width: auto; max-width: 760px; transform: none; font-size: 14px; padding: 12px 14px 14px; }
+    body.touch .window { max-height: calc(100% - 20px); overflow-y: auto; touch-action: pan-y; -webkit-overflow-scrolling: touch; padding-top: 10px; }
+    body.touch .ql-body { max-height: none; }
+    body.touch #bossbar { top: calc(8px + env(safe-area-inset-top)); max-width: 46vw; }
+    body.touch.portrait #dialog { left: 8px; right: 8px; bottom: calc(190px + env(safe-area-inset-bottom)); }
+    body.touch.portrait #toasts { right: 8px; top: calc(170px + env(safe-area-inset-top)); }
+    body.touch.portrait #bossbar { top: calc(110px + env(safe-area-inset-top)); max-width: 90vw; }
+    @media (max-height: 460px) { body.touch .window { font-size: 12px; padding: 8px 12px; } body.touch .window h2 { font-size: 15px; margin-bottom: 6px; } body.touch .inv-top { gap: 10px; } }
+    #rotate-hint { top: calc(80px + env(safe-area-inset-top)); left: 50%; transform: translateX(-50%); font-size: 12px; color: #ffe14d; display: none; text-align: center; pointer-events: auto; z-index: 6; }
+    body.touch.portrait #rotate-hint:not(.gone) { display: block; }
   </style>
 </head>
 <body>
@@ -144,6 +201,7 @@
   <div id="dialog" class="panel hidden"><div class="dlg-name"></div><div class="dlg-text"></div><div class="dlg-choices hidden"></div><div class="dlg-more"></div></div>
   <div id="area" class="panel"></div>
   <div id="toasts"></div>
+  <div id="rotate-hint" class="panel">⟲ Tipp: Gerät quer halten für mehr Übersicht<br><small>(antippen zum Ausblenden)</small></div>
   <div id="banner" class="panel"></div>
   <div id="death">BESIEGT …</div>
   <div id="inv" class="panel window hidden"><h2>Inventar</h2><div class="inv-body"></div><div class="hint">Pfeile/WASD wählen · E benutzen · I/Tab/Esc schließen</div></div>

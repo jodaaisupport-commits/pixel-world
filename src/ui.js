@@ -19,6 +19,7 @@ export class UI {
     $('coin-icon').src = this.icon.taler;
     this.toasts = $('toasts'); this.bannerEl = $('banner'); this.bannerTimer = null;
     this.inv = $('inv'); this.ql = $('questlog'); this.shop = $('shop'); this.opt = $('options');
+    this.bindTaps();
     this.optSel = 0; this.bannerQ = []; this.bannerBusy = 0;
     this.bossEl = $('bossbar'); this.cineEl = $('cine'); this.creditsEl = $('credits');
   }
@@ -128,6 +129,22 @@ export class UI {
     this.mode = null;
     for (const el of [this.inv, this.ql, this.shop, this.opt]) el.classList.add('hidden');
   }
+  /** Antippen/Klicken: Schließen-Knopf, Inventarplätze, Ladenzeilen, Optionszeilen. */
+  bindTaps() {
+    for (const el of [this.inv, this.ql, this.shop, this.opt]) {
+      const x = document.createElement('button'); x.className = 'win-close'; x.setAttribute('aria-label', 'Schließen'); x.textContent = '✕';
+      x.addEventListener('click', (e) => { e.stopPropagation(); this.close(); });
+      el.appendChild(x);
+    }
+    const pick = (el, sel, fn) => el.addEventListener('click', (e) => { const t = e.target.closest(sel); if (t) fn(+t.dataset.i, t, e); });
+    pick(this.inv, '.slot[data-i]', (i) => { if (this.sel === i) this.key('KeyE'); else { this.sel = i; this.G.sfx('select'); this.render(); } });
+    pick(this.shop, '.shop-row[data-i]', (i) => { if (this.shopSel === i) this.key('KeyE'); else { this.shopSel = i; this.G.sfx('select'); this.render(); } });
+    pick(this.opt, '.opt-row[data-i]', (i, t, e) => {
+      this.optSel = i; const k = this.optionRows()[i][2], r = t.getBoundingClientRect();
+      if (k === 'musicVol' || k === 'sfxVol') this.key(e.clientX < r.left + r.width / 2 ? 'ArrowLeft' : 'ArrowRight');
+      else this.key('KeyE');
+    });
+  }
   items() { return Object.keys(this.G.state.inv).filter((k) => this.G.state.inv[k] > 0); }
   render() {
     if (this.mode === 'inv') this.renderInv();
@@ -142,12 +159,13 @@ export class UI {
       ['Musik-Lautstärke', `${bar(a.musicVol)} ${Math.round(a.musicVol * 100)}%`, 'musicVol'],
       ['Soundeffekte', a.sfx ? 'An' : 'Aus', 'sfx'],
       ['Effekt-Lautstärke', `${bar(a.sfxVol)} ${Math.round(a.sfxVol * 100)}%`, 'sfxVol'],
+      ['Touch-Steuerung', this.G.touchLabel ? this.G.touchLabel() : 'Aus', 'touch'],
       ['Zurück zum Spiel', '', 'close'],
     ];
   }
   renderOptions() {
     const rows = this.optionRows(), tr = this.G.trackName();
-    this.opt.querySelector('.opt-body').innerHTML = rows.map(([l, v, k], i) => `<div class="opt-row${i === this.optSel ? ' sel' : ''}"><span>${i === this.optSel ? '▶' : '&nbsp;'} ${l}</span><b class="${v === 'Aus' ? 'off' : ''}">${v}</b></div>`).join('') +
+    this.opt.querySelector('.opt-body').innerHTML = rows.map(([l, v, k], i) => `<div data-i="${i}" class="opt-row${i === this.optSel ? ' sel' : ''}"><span>${i === this.optSel ? '▶' : '&nbsp;'} ${l}</span><b class="${v === 'Aus' ? 'off' : ''}">${v}</b></div>`).join('') +
       `<div class="opt-now">♪ Jetzt läuft: <b>${tr}</b>${this.G.audio.ready ? '' : ' <i>(Ton startet nach dem ersten Tastendruck)</i>'}</div>
        <div class="opt-keys"><b>N</b> Musik an/aus · <b>B</b> Effekte an/aus · <b>P</b>/<b>Esc</b> Optionen</div>`;
   }
@@ -157,7 +175,7 @@ export class UI {
     let grid = '';
     for (let i = 0; i < SLOTS; i++) {
       const id = list[i];
-      grid += `<div class="slot${i === this.sel ? ' sel' : ''}">${id ? `<img src="${this.icon[id]}"><b>${s.inv[id] > 1 ? s.inv[id] : ''}</b>` : ''}</div>`;
+      grid += `<div data-i="${i}" class="slot${i === this.sel ? ' sel' : ''}">${id ? `<img src="${this.icon[id]}"><b>${s.inv[id] > 1 ? s.inv[id] : ''}</b>` : ''}</div>`;
     }
     const eq = (id, label) => `<div class="eq"><div class="slot">${id ? `<img src="${this.icon[id]}">` : ''}</div><span>${label}<br><i>${id ? ITEMS[id].name : '—'}</i></span></div>`;
     const cur = list[this.sel];
@@ -207,7 +225,7 @@ export class UI {
     if (this.shopSel >= list.length) this.shopSel = 0;
     this.shop.querySelector('.shop-body').innerHTML = list.map((id, i) => {
       const d = ITEMS[id], afford = s.coins >= d.price;
-      return `<div class="shop-row${i === this.shopSel ? ' sel' : ''}${afford ? '' : ' poor'}"><img src="${this.icon[id]}"><div><b>${d.name}</b><p>${d.desc}</p></div><span class="price"><img src="${this.icon.taler}">${d.price}</span><span class="own">${d.type === 'equip' ? 'Ausrüstung' : 'im Besitz: ' + (s.inv[id] || 0)}</span></div>`;
+      return `<div data-i="${i}" class="shop-row${i === this.shopSel ? ' sel' : ''}${afford ? '' : ' poor'}"><img src="${this.icon[id]}"><div><b>${d.name}</b><p>${d.desc}</p></div><span class="price"><img src="${this.icon.taler}">${d.price}</span><span class="own">${d.type === 'equip' ? 'Ausrüstung' : 'im Besitz: ' + (s.inv[id] || 0)}</span></div>`;
     }).join('') + `<div class="purse"><img src="${this.icon.taler}"> ${s.coins} Taler</div>`;
   }
 
@@ -223,6 +241,7 @@ export class UI {
       const k = rows[this.optSel][2], lr = { ArrowLeft: -1, KeyA: -1, ArrowRight: 1, KeyD: 1 }[code];
       const act = code === 'KeyE' || code === 'Enter' || code === 'Space';
       if (k === 'close' && act) { this.close(); return true; }
+      if (k === 'touch' && (act || lr)) { this.G.touchCycle && this.G.touchCycle(); this.G.sfx('select'); this.render(); return true; }
       if ((k === 'music' || k === 'sfx') && (act || lr)) A.setSettings({ [k]: !A.settings[k] });
       if ((k === 'musicVol' || k === 'sfxVol') && (lr || act)) A.setSettings({ [k]: Math.max(0, Math.min(1, Math.round((A.settings[k] + (lr || 1) * 0.1) * 10) / 10)) });
       if (act || lr) { this.G.sfx('select'); this.G.markDirty(); }

@@ -22,6 +22,7 @@ import { buildArc2Art } from './tiles-arc2.js';
 import { ARENA, ARENA_RESPAWN } from './maps/tiefe.js';
 import { createArc2 } from './arc2.js';
 import { T } from './map.js';
+import { createTouch } from './touch.js';
 import { makeValueNoise, fbm } from './noise.js';
 
 const $ = (id) => document.getElementById(id);
@@ -508,43 +509,71 @@ window.addEventListener('pointerdown', () => audio.unlock());
 window.addEventListener('keydown', (e) => {
   audio.unlock();
   if (['Tab', 'Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.code)) e.preventDefault();
-  if (state.credits) { if (!e.repeat && ['KeyE', 'Space', 'Enter', 'Escape'].includes(e.code) && state.credits.ready) state.credits.res(); return; }
+  handleKey(e.code, e.repeat);
+});
+/** Eine Taste (echte Tastatur oder Touch-Knopf). */
+function handleKey(code, rep = false) {
+  if (state.credits) { if (!rep && ['KeyE', 'Space', 'Enter', 'Escape'].includes(code) && state.credits.ready) state.credits.res(); return; }
   if (state.cine && !dialog.open) {
-    if (e.repeat) return;
-    if (e.code === 'Escape') { state.cine.skip = true; state.cine.next && state.cine.next(); }
-    else if (['KeyE', 'Space', 'Enter'].includes(e.code) && ui.cineDone()) { audio.sfx('select'); state.cine.next && state.cine.next(); }
+    if (rep) return;
+    if (code === 'Escape') { state.cine.skip = true; state.cine.next && state.cine.next(); }
+    else if (['KeyE', 'Space', 'Enter'].includes(code) && ui.cineDone()) { audio.sfx('select'); state.cine.next && state.cine.next(); }
     return;
   }
   // Fenster (Inventar/Questlog/Laden) haben Vorrang, das Spiel ist dann pausiert
-  if (ui.open) { if (!e.repeat || KEYMAP[e.code]) ui.key(e.code); return; }
+  if (ui.open) { if (!rep || KEYMAP[code]) ui.key(code); return; }
   if (dialog.open) {
-    if (e.code === 'ArrowUp' || e.code === 'KeyW') dialog.move(-1);
-    else if (e.code === 'ArrowDown' || e.code === 'KeyS') dialog.move(1);
-    else if (!e.repeat && (e.code === 'KeyE' || e.code === 'Space' || e.code === 'Enter')) dialog.advance();
-    else if (e.code === 'Escape') dialog.close();
+    if (code === 'ArrowUp' || code === 'KeyW') dialog.move(-1);
+    else if (code === 'ArrowDown' || code === 'KeyS') dialog.move(1);
+    else if (!rep && (code === 'KeyE' || code === 'Space' || code === 'Enter')) dialog.advance();
+    else if (code === 'Escape') dialog.close();
     return;
   }
   if (state.script) return;
-  const k = KEYMAP[e.code];
+  const k = KEYMAP[code];
   if (k) { if (!state.fade) input[k] = true; return; }
-  if (e.repeat) return;
-  if (e.code === 'KeyN') { audio.setSettings({ music: !audio.settings.music }); ui.toast(`Musik: ${audio.settings.music ? 'an' : 'aus'}`); }
-  else if (e.code === 'KeyB') { audio.setSettings({ sfx: !audio.settings.sfx }); ui.toast(`Soundeffekte: ${audio.settings.sfx ? 'an' : 'aus'}`); }
-  else if (e.code === 'KeyP' || e.code === 'Escape') { stopInput(); ui.toggle('options'); }
-  else if (e.code === 'KeyM') miniWrap.classList.toggle('hidden');
-  else if (e.code === 'KeyT') state.tint = (state.tint + 1) % 3;
+  if (rep) return;
+  if (code === 'KeyN') { audio.setSettings({ music: !audio.settings.music }); ui.toast(`Musik: ${audio.settings.music ? 'an' : 'aus'}`); }
+  else if (code === 'KeyB') { audio.setSettings({ sfx: !audio.settings.sfx }); ui.toast(`Soundeffekte: ${audio.settings.sfx ? 'an' : 'aus'}`); }
+  else if (code === 'KeyP' || code === 'Escape') { stopInput(); ui.toggle('options'); }
+  else if (code === 'KeyM') miniWrap.classList.toggle('hidden');
+  else if (code === 'KeyT') state.tint = (state.tint + 1) % 3;
   else if (state.fade || state.dying) return;
-  else if (e.code === 'KeyE' || e.code === 'Enter') interact();
-  else if (e.code === 'Space') { if (findTarget()) interact(); else attack(); }
-  else if (e.code === 'KeyJ') attack();
-  else if (e.code === 'KeyI' || e.code === 'Tab') { stopInput(); ui.toggle('inv'); }
-  else if (e.code === 'KeyQ') { stopInput(); ui.toggle('quests'); }
-  else if (e.code === 'Equal' || e.code === 'NumpadAdd') { scale = Math.min(6, scale + 1); resize(); }
-  else if (e.code === 'Minus' || e.code === 'NumpadSubtract') { scale = Math.max(2, scale - 1); resize(); }
-});
+  else if (code === 'KeyE' || code === 'Enter') interact();
+  else if (code === 'Space') { if (findTarget()) interact(); else attack(); }
+  else if (code === 'KeyJ') attack();
+  else if (code === 'KeyI' || code === 'Tab') { stopInput(); ui.toggle('inv'); }
+  else if (code === 'KeyQ') { stopInput(); ui.toggle('quests'); }
+  else if (code === 'Equal' || code === 'NumpadAdd') { manualZoom = true; scale = Math.min(6, scale + 1); resize(); }
+  else if (code === 'Minus' || code === 'NumpadSubtract') { manualZoom = true; scale = Math.max(2, scale - 1); resize(); }
+}
 window.addEventListener('keyup', (e) => { const k = KEYMAP[e.code]; if (k) input[k] = false; });
 function stopInput() { for (const k in input) input[k] = false; }
-window.addEventListener('blur', stopInput);
+window.addEventListener('blur', () => { stopInput(); touch.release(); });
+const isMenu = () => !!(ui.open || dialog.open || state.cine || state.credits);
+const touch = createTouch({ onKey: (c) => { if (c === '__unlock') audio.unlock(); else handleKey(c); }, isMenu });
+G.touchLabel = () => touch.modeLabel();
+G.touchCycle = () => { touch.cycleMode(); resize(); };
+// Tippen auf das Bild: Zwischensequenz/Abspann/Dialog weiter (wie E)
+canvas.addEventListener('pointerdown', (e) => { e.preventDefault(); audio.unlock(); if (state.credits || state.cine || dialog.open) handleKey('KeyE'); });
+for (const id of ['cine', 'credits']) $(id).addEventListener('pointerdown', (e) => { e.preventDefault(); audio.unlock(); handleKey('KeyE'); });
+$('dialog').addEventListener('click', (e) => {
+  const opt = e.target.closest('[data-i]');
+  if (opt && dialog.choosing) { dialog.sel = +opt.dataset.i; dialog.render(); }
+  handleKey('KeyE');
+});
+window.addEventListener('touchend', () => audio.unlock(), { passive: true });
+document.addEventListener('contextmenu', (e) => e.preventDefault());
+document.addEventListener('gesturestart', (e) => e.preventDefault());
+{ const h = $('rotate-hint'); h.addEventListener('pointerdown', () => h.classList.add('gone')); setTimeout(() => h.classList.add('gone'), 9000); }
+const tin = { up: false, down: false, left: false, right: false, run: false };
+/** Tastatur + Joystick zusammenführen (ohne Allokation pro Frame). */
+function mergedInput() {
+  if (!touch.active) return input;
+  const d = touch.dirs;
+  tin.up = input.up || d.up; tin.down = input.down || d.down; tin.left = input.left || d.left; tin.right = input.right || d.right; tin.run = input.run || d.run;
+  return tin;
+}
 
 const DIRV = { up: [0, -1], down: [0, 1], left: [-1, 0], right: [1, 0] };
 /** Was liegt vor der Figur? NPC > Tür > Schild/Objekt in der Nähe. */
@@ -592,13 +621,20 @@ function interact() {
 }
 
 // ---------------------------------------------------------------- Größe
+let manualZoom = false;
 function resize() {
-  if (innerWidth < 700) scale = Math.min(scale, 2);
-  const vw = Math.ceil(innerWidth / scale / 2) * 2;
-  const vh = Math.ceil(innerHeight / scale / 2) * 2;
+  const W = innerWidth, H = innerHeight;
+  if (touch && touch.active && !manualZoom) scale = Math.max(1, Math.min(4, Math.round(Math.min(W, H) / 190))); // ~12 Kacheln auf der kurzen Seite
+  else if (W < 700) scale = Math.min(scale, 2);
+  const vw = Math.ceil(W / scale / 2) * 2;
+  const vh = Math.ceil(H / scale / 2) * 2;
+  if (buffer.width === vw && buffer.height === vh && canvas.dataset.s === String(scale)) return;
+  canvas.dataset.s = scale;
   buffer.width = vw; buffer.height = vh;
   light.width = vw; light.height = vh;
-  canvas.width = vw * scale; canvas.height = vh * scale;
+  const dpr = Math.min(2, Math.max(1, Math.floor(window.devicePixelRatio || 1))); // DPR gedeckelt
+  canvas.width = vw * scale * dpr; canvas.height = vh * scale * dpr;
+  document.body.classList.toggle('portrait', H > W);
   canvas.style.width = vw * scale + 'px';
   canvas.style.height = vh * scale + 'px';
   bctx.imageSmoothingEnabled = false;
@@ -606,6 +642,7 @@ function resize() {
   camera.resize(vw, vh);
 }
 window.addEventListener('resize', resize);
+window.addEventListener('orientationchange', () => setTimeout(resize, 120));
 resize();
 
 // ---------------------------------------------------------------- Partikel
@@ -751,7 +788,7 @@ function render(time) {
     bctx.fillStyle = `rgba(0,0,0,${Math.max(0, Math.min(1, a))})`;
     bctx.fillRect(0, 0, cam.w, cam.h);
   }
-  ctx.drawImage(buffer, 0, 0, cam.w * scale, cam.h * scale);
+  ctx.drawImage(buffer, 0, 0, canvas.width, canvas.height);
 }
 
 let lastHud = '';
@@ -768,7 +805,7 @@ function updateHud() {
   ui.updateHud();
   const t = !dialog.open && !state.fade && !ui.open && !state.dying && !state.script ? findTarget() : null;
   hudPrompt.classList.toggle('hidden', !t);
-  if (t) hudPrompt.innerHTML = `<b>E</b> – ${t.type === 'npc' ? 'sprechen mit ' + t.npc.name : t.type === 'door' ? 'eintreten' : t.type === 'chest' ? 'Truhe öffnen' : 'ansehen'}`;
+  if (t) hudPrompt.innerHTML = `<b>${touch.active ? 'A' : 'E'}</b> – ${t.type === 'npc' ? 'sprechen mit ' + t.npc.name : t.type === 'door' ? 'eintreten' : t.type === 'chest' ? 'Truhe öffnen' : 'ansehen'}`;
   if (!miniWrap.classList.contains('hidden')) {
     mctx.drawImage(sc.mini, 0, 0);
     mctx.strokeStyle = 'rgba(255,255,255,0.8)';
@@ -1184,7 +1221,8 @@ function frame(now) {
     }
   } else if (!ui.open) {
     updateTimers(dt); updatePan(dt);
-    const inp = state.autoWalk ? autoInput(dt) : state.script || state.cine ? NOINPUT : input;
+    touch.update(dt);
+    const inp = state.autoWalk ? autoInput(dt) : state.script || state.cine ? NOINPUT : mergedInput();
     if (!dialog.open && !state.cine) player.update(dt, inp, sc.map);
     else player.moving = false;
     for (const n of sc.npcs) n.update(dt, sc.map, player);
@@ -1204,6 +1242,7 @@ function frame(now) {
   state.shake = Math.max(0, state.shake - dt);
   if (state.dirty && now - state.lastSave > 1500 && !state.fade) saveNow();
   dialog.update(dt);
+  const mo = !!ui.open; if (mo !== state.menuOpen) { state.menuOpen = mo; document.body.classList.toggle('menu-open', mo); }
   updateParticles(dt);
   render(now);
   updateHud();

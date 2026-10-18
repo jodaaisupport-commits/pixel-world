@@ -58,7 +58,7 @@ export class Dialog {
     this.moreEl.dataset.page = `${this.page + 1}/${this.pages.length}`;
     if (this.choosing) {
       this.choiceEl.classList.remove('hidden');
-      this.choiceEl.innerHTML = this.choice.options.map((o, i) => `<div class="${i === this.sel ? 'sel' : ''}">${i === this.sel ? '▶' : '&nbsp;'} ${o}</div>`).join('');
+      this.choiceEl.innerHTML = this.choice.options.map((o, i) => `<div data-i="${i}" class="${i === this.sel ? 'sel' : ''}">${i === this.sel ? '▶' : '&nbsp;'} ${o}</div>`).join('');
     } else this.choiceEl.classList.add('hidden');
   }
 }

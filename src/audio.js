@@ -179,6 +179,8 @@ export class AudioEngine {
         this.applySettings();
         this.timer = setInterval(() => this.tick(), 25);
         if (this.wanted) { const w = this.wanted; this.wanted = null; this.music(w); }
+        // iOS Safari: ein stiller Puffer innerhalb der Geste schaltet die Ausgabe frei
+        try { const b = c.createBuffer(1, 1, 22050), src = c.createBufferSource(); src.buffer = b; src.connect(c.destination); src.start(0); } catch (e) { /* egal */ }
       }
       if (this.ctx.state === 'suspended') this.ctx.resume().catch((e) => this.errors.push(String(e)));
     } catch (e) { this.errors.push(String(e)); }
