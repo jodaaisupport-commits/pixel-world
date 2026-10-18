@@ -77,4 +77,41 @@ export const NPC_DEFS = {
         'Na gut, ein kurzer Blick schadet nicht. Drinnen ist es stockfinster – nur die Kristalle leuchten.',
         'Und wenn du eine Truhe findest: Die gehört dem Dorf! … Oder dem Finder. Ich hab nichts gesehen.'],
   },
+  // ---- Zweite Geschichte
+  selma: {
+    name: 'Kartografin Selma',
+    look: { h: '#3a2418', H: '#5a3a24', s: '#d8a070', S: '#b07a50', t: '#4a7a4a', T: '#2f5a34', L: '#6a9a5a', p: '#6b4a2b', extras: ['longhair', 'hat'], hat: '#b8925e', hatD: '#8a6a40', hatBand: '#c83a2a' },
+    pages: (s) => [
+      'Ich zeichne jede Düne, jede Spalte, jeden Stein! Na ja – fast jeden. Manche Steine sehen sich SEHR ähnlich.',
+      s.visited.has('frost') ? 'Die Frosthöhen! Du warst dort? Ich brauche unbedingt Maße von dieser Gletscherspalte. Zu Fuß. Ähm. Mit dem Haken.'
+        : 'Eine gute Karte ist wie ein guter Freund: Sie sagt dir ehrlich, wo du dich verlaufen hast.',
+    ],
+  },
+  kadir: {
+    name: 'Wirt Kadir',
+    look: { h: '#1a1412', H: '#2a201c', s: '#b07a50', S: '#8a5a38', t: '#2f6aa8', T: '#1f4a7a', L: '#4a8ac8', p: '#e8e0c8', beard: '#1a1412', extras: ['beard', 'hat'], hat: '#f0ece0', hatD: '#c8c0a8', hatBand: '#d9b860' },
+    pages: [
+      'Willkommen in der „Kühlen Quelle“, Freund. Setz dich. Erst der Tee, dann die Geschichten – so ist es Brauch.',
+      'Die Wüste nimmt sich, was man ihr nicht gibt. Darum gib ihr nichts. Außer Fußspuren.',
+      'Wer müde ist, legt sich in eines meiner Betten. Ein Kissen heilt mehr als hundert Tränke, sagt meine Großmutter.',
+    ],
+  },
+  nuri: {
+    name: 'Händlerin Nuri',
+    look: { h: '#2a1a14', H: '#4a2e20', s: '#c8905e', S: '#a06a40', t: '#d9822a', T: '#a85a1a', L: '#f0a050', p: '#5a2a5a', extras: ['longhair', 'kerchief', 'dress'], kerchief: '#8a3a8a', dress: '#d9822a', dressD: '#a85a1a' },
+    pages: [
+      'Kundschaft! Oder nur Gucken? Gucken kostet nichts. Noch nicht.',
+      'Mein Preis ist fair. Fair für mich, meine ich. Für dich ist er … lehrreich.',
+      'Die Sandläufer-Stiefel? Handgeflochten, wüstenerprobt, garantiert ohne Sand drin. Na ja. Mit wenig Sand drin.',
+    ],
+  },
+  frostbart: {
+    name: 'Eremit Frostbart',
+    look: { h: '#e8eef4', H: '#ffffff', s: '#e8b898', S: '#c09070', t: '#a63c33', T: '#7a2c2a', L: '#c95a43', p: '#4a3a2a', beard: '#eef3f9', extras: ['beard', 'hat'], hat: '#8a6a4a', hatD: '#5a4430', hatBand: '#eef3f9' },
+    pages: (s) => [
+      'Hmpf. Besuch. Hier oben. Das letzte Mal war vor elf Wintern. Es war ein Bär. Er war höflicher.',
+      'Setz dich ans Feuer, wenn du willst. Aber erzähl nichts. Die Stille hier oben ist teuer.',
+      s.visited.has('eisgrotte') ? '… Du warst in der Grotte und bist noch nicht festgefroren? Hmpf. Respekt.' : 'Die Grotte im Norden ist kalt, glatt und voller Geister. Also genau wie ich. Hmpf.',
+    ],
+  },
 };

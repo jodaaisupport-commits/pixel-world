@@ -6,10 +6,11 @@ export function newGameState() {
     hp: 6, maxHp: 6, coins: 10,
     inv: {},                 // itemId -> Anzahl (Reihenfolge = Einsammel-Reihenfolge)
     weapon: null, lamp: false,
+    boots: false, hook: false, grip: false, // Werkzeuge der zweiten Geschichte
     quests: { schwert: 'active' },
     taken: {},               // dauerhaft eingesammelte Welt-Gegenstände
     opened: {},              // geöffnete Truhen
-    story: { ch: 0, flags: {} }, // Hauptgeschichte: Kapitel (0 = Intro) + Story-Flags
+    story: { ch: 0, ch2: 0, flags: {} }, // Hauptgeschichte: Kapitel (0 = Intro) + Story-Flags
     title: null,             // Ehrentitel nach dem Sieg
   };
 }
@@ -20,7 +21,7 @@ export function saveGame(game, pos) {
     const data = {
       v: 1, time: Date.now(),
       map: pos.map, x: pos.x, y: pos.y, dir: pos.dir,
-      hp: s.hp, maxHp: s.maxHp, coins: s.coins, inv: s.inv, weapon: s.weapon, lamp: s.lamp,
+      hp: s.hp, maxHp: s.maxHp, coins: s.coins, inv: s.inv, weapon: s.weapon, lamp: s.lamp, boots: s.boots, hook: s.hook, grip: s.grip,
       quests: s.quests, taken: s.taken, opened: s.opened, visited: [...pos.visited], tint: pos.tint,
       story: s.story, title: s.title, settings: pos.settings || null,
     };

@@ -2,6 +2,7 @@
 import { ITEMS } from './items.js';
 import { QUESTS, QUEST_ORDER } from './quests.js';
 import { CHAPTERS, MAIN_TITLE } from './story.js';
+import { CHAPTERS2, TITLE2 } from './story2.js';
 
 const $ = (id) => document.getElementById(id);
 const COLS = 8, SLOTS = 24;
@@ -72,12 +73,13 @@ export class UI {
     this.bossEl.classList.remove('hidden');
     const key = `${boss.hp}/${Math.round(boss.ghost)}/${boss.phase}/${boss.state === 'transition'}`;
     if (key === this.bossKey) return;
-    if (!this.bossKey) this.bossEl.innerHTML = `<div class="bb-name">${name}<small>${title}</small></div><div class="bb-bar"><div class="bb-ghost"></div><div class="bb-fill"></div><i style="left:33.3%"></i><i style="left:66.6%"></i></div><div class="bb-phase"></div>`;
+    const n = boss.phases || 3;
+    if (!this.bossKey) this.bossEl.innerHTML = `<div class="bb-name">${name}<small>${title}</small></div><div class="bb-bar"><div class="bb-ghost"></div><div class="bb-fill"></div>${Array.from({ length: n - 1 }, (_, i) => `<i style="left:${(100 * (i + 1) / n).toFixed(1)}%"></i>`).join('')}</div><div class="bb-phase"></div>`;
     this.bossKey = key;
     this.bossEl.querySelector('.bb-fill').style.width = (100 * boss.hp / boss.maxHp) + '%';
     this.bossEl.querySelector('.bb-ghost').style.width = (100 * boss.ghost / boss.maxHp) + '%';
-    this.bossEl.querySelector('.bb-phase').textContent = boss.state === 'transition' ? 'Umbrakor zerbricht seinen Panzer!' : `Phase ${boss.phase} / 3`;
-    this.bossEl.classList.toggle('p3', boss.phase === 3);
+    this.bossEl.querySelector('.bb-phase').textContent = boss.state === 'transition' ? (boss.transitionText || 'Umbrakor zerbricht seinen Panzer!') : `Phase ${boss.phase} / ${n}`;
+    this.bossEl.classList.toggle('p3', boss.phase === n && n > 1);
   }
 
   // ------------------------------------------------------------ Zwischensequenzen
@@ -164,6 +166,7 @@ export class UI {
     this.inv.querySelector('.inv-body').innerHTML =
       `<div class="inv-top">${eq(s.weapon, 'Waffe')}${eq(s.lamp ? 'grubenlampe' : null, 'Lampe')}
         <div class="purse"><img src="${this.icon.taler}"> ${s.coins} Taler<br><span class="hp">${s.hp / 2} / ${s.maxHp / 2} Herzen</span></div></div>
+       ${s.boots || s.hook || s.grip || (s.story && s.story.ch2) ? `<div class="inv-top tools">${eq(s.boots ? 'sandlaeufer' : null, 'Stiefel')}${eq(s.hook ? 'enterhaken' : null, 'Haken')}${eq(s.grip ? 'steigeisen' : null, 'Eisen')}</div>` : ''}
        <div class="grid">${grid}</div>
        <div class="desc">${def ? `<b>${def.name}${s.inv[cur] > 1 ? ' ×' + s.inv[cur] : ''}</b><p>${def.desc}</p>${action}` : '<p class="muted">Leerer Platz.</p>'}</div>`;
   }
@@ -178,6 +181,13 @@ export class UI {
       html += `<div class="quest main"><div class="q-kicker">Hauptquest · ${MAIN_TITLE} · Kapitel ${st.ch}/5</div><div class="q-title">${C.title}</div><p>${C.desc}</p><ul>` +
         steps.map((x, i) => (i <= cur || x.done ? `<li class="${x.done ? 'done' : 'cur'}">${x.done ? '✔' : '▸'} ${x.text}</li>` : '')).join('') + '</ul></div>';
     } else if (st.ch >= 6) html += `<div class="quest main"><div class="q-kicker">Hauptquest abgeschlossen</div><div class="q-title">${MAIN_TITLE}</div><p>Umbrakor ist besiegt, der Nebel ist fort. Die Welt gehört dir – erkunde sie in Ruhe weiter!</p></div>`;
+    const ch2 = st.ch2 || 0;
+    if (ch2 >= 1 && ch2 <= 5) {
+      const C = CHAPTERS2[ch2], steps = C.steps(this.G, st.flags), cur = steps.findIndex((x) => !x.done);
+      const card = `<div class="quest main arc2"><div class="q-kicker">Hauptquest · ${TITLE2} · Kapitel ${ch2}/5</div><div class="q-title">${C.title}</div><p>${C.desc}</p><ul>` +
+        steps.map((x, i) => (i <= cur || x.done ? `<li class="${x.done ? 'done' : 'cur'}">${x.done ? '✔' : '▸'} ${x.text}</li>` : '')).join('') + '</ul></div>';
+      html = card + (st.ch >= 6 ? `<div class="q-done">✔ Hauptquest „${MAIN_TITLE}“</div>` : html);
+    } else if (ch2 >= 6) html = `<div class="quest main arc2"><div class="q-kicker">Hauptquest abgeschlossen</div><div class="q-title">${TITLE2}</div><p>Die drei Sternensplitter sind vereint. Sonne, Frost und Gezeiten sind wieder im Gleichgewicht, Sternenhüter!</p></div><div class="q-done">✔ Hauptquest „${MAIN_TITLE}“</div>`;
     if (!ids.length && !html) html = '<p class="muted">Noch keine Quests. Sprich mit den Leuten im Dorf!</p>';
     for (const id of active) {
       const q = QUESTS[id], steps = q.steps(this.G);
@@ -189,11 +199,15 @@ export class UI {
     if (done.length) html += '<div class="q-done-head">Abgeschlossen</div>' + done.map((id) => `<div class="q-done">✔ ${QUESTS[id].title}</div>`).join('');
     this.ql.querySelector('.ql-body').innerHTML = html;
   }
+  shopItems() { return this.G.shopList ? this.G.shopList() : SHOP_ITEMS; }
   renderShop() {
     const s = this.G.state;
-    this.shop.querySelector('.shop-body').innerHTML = SHOP_ITEMS.map((id, i) => {
+    const list = this.shopItems();
+    this.shop.querySelector('h2').textContent = this.G.shopTitle ? this.G.shopTitle() : 'Antons Krämerladen';
+    if (this.shopSel >= list.length) this.shopSel = 0;
+    this.shop.querySelector('.shop-body').innerHTML = list.map((id, i) => {
       const d = ITEMS[id], afford = s.coins >= d.price;
-      return `<div class="shop-row${i === this.shopSel ? ' sel' : ''}${afford ? '' : ' poor'}"><img src="${this.icon[id]}"><div><b>${d.name}</b><p>${d.desc}</p></div><span class="price"><img src="${this.icon.taler}">${d.price}</span><span class="own">im Besitz: ${s.inv[id] || 0}</span></div>`;
+      return `<div class="shop-row${i === this.shopSel ? ' sel' : ''}${afford ? '' : ' poor'}"><img src="${this.icon[id]}"><div><b>${d.name}</b><p>${d.desc}</p></div><span class="price"><img src="${this.icon.taler}">${d.price}</span><span class="own">${d.type === 'equip' ? 'Ausrüstung' : 'im Besitz: ' + (s.inv[id] || 0)}</span></div>`;
     }).join('') + `<div class="purse"><img src="${this.icon.taler}"> ${s.coins} Taler</div>`;
   }
 
@@ -220,8 +234,9 @@ export class UI {
       if (code === 'KeyE' || code === 'Enter' || code === 'Space') { const id = this.items()[this.sel]; if (id) this.G.useItem(id); this.render(); return true; }
     } else if (m === 'shop') {
       const d = { ArrowUp: -1, KeyW: -1, ArrowDown: 1, KeyS: 1 }[code];
-      if (d) { this.shopSel = (this.shopSel + d + SHOP_ITEMS.length) % SHOP_ITEMS.length; this.G.sfx('select'); this.render(); return true; }
-      if (code === 'KeyE' || code === 'Enter' || code === 'Space') { this.G.buy(SHOP_ITEMS[this.shopSel]); this.render(); return true; }
+      const L = this.shopItems();
+      if (d) { this.shopSel = (this.shopSel + d + L.length) % L.length; this.G.sfx('select'); this.render(); return true; }
+      if (code === 'KeyE' || code === 'Enter' || code === 'Space') { this.G.buy(L[this.shopSel]); this.render(); return true; }
     }
     return true; // alle anderen Tasten schlucken (Spiel pausiert)
   }
