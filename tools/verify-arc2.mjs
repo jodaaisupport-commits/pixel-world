@@ -373,7 +373,7 @@ export async function runArc2({ page, URL, OUT, check, problems }) {
   await finishScript();
   let t = await tb();
   check('Thalassa: Intro, Gezeitengitter verriegelt, Lebensleiste (3 Phasen), Bossmusik', t.fight && t.lock && t.bar && t.track === 'boss2' && /Thalassa/.test(t.barText) && /3/.test(t.barText), t);
-  await heal(); await wait(2200); await heal(); await clearOverlays();
+  await heal(); await wait(2200); await heal(); await clearOverlays(); await G(() => { const g = window.__game; g.teleport(17.5, 14.6, 'up'); g.player.inv = 1.5; }); await wait(350);
   await shot('boss2-phase1.png');
   const tBlock = await G(() => { const g = window.__game, b = g.boss; if (!b.visible) return 'hidden'; return b.hurt(1, g.bossEnv); });
   // reflektierte Wasserkugel betäubt sie
@@ -394,7 +394,7 @@ export async function runArc2({ page, URL, OUT, check, problems }) {
   await wait(2400); await heal();
   await G(() => { const b = window.__game.boss; b.state = 'wait'; b.timer = 0.01; b.order = 1; });
   await page.waitForFunction(() => { const b = window.__game.boss; window.__game.game.hp = window.__game.game.maxHp; return b && b.tentacles.length > 0; }, null, { timeout: 12000, polling: 60 }).catch(() => {});
-  await wait(900); await heal(); await clearOverlays();
+  await wait(900); await heal(); await clearOverlays(); await G(() => { const g = window.__game; g.teleport(17.5, 14.6, 'up'); g.player.inv = 1.5; }); await wait(350);
   await shot('boss2-phase2.png');
   t = await tb();
   const tent = await G(() => window.__game.boss.tentacles.length);
@@ -403,7 +403,7 @@ export async function runArc2({ page, URL, OUT, check, problems }) {
   await wait(2400); await heal();
   await G(() => { const b = window.__game.boss; b.state = 'wait'; b.timer = 0.01; b.order = 0; });
   await page.waitForFunction(() => { const b = window.__game.boss; window.__game.game.hp = window.__game.game.maxHp; return b && (b.whirl > 0 || b.flood); }, null, { timeout: 12000, polling: 60 }).catch(() => {});
-  await wait(700); await heal(); await clearOverlays();
+  await wait(700); await heal(); await clearOverlays(); await G(() => { const g = window.__game; g.teleport(17.5, 14.6, 'up'); g.player.inv = 1.5; }); await wait(350);
   await shot('boss2-phase3.png');
   t = await tb();
   const ph3 = await G(() => { const b = window.__game.boss; return { whirl: b.whirl > 0, flood: !!b.flood }; });

@@ -15,6 +15,12 @@ in Offscreen-Canvases gemalt und pixelgenau (Nearest-Neighbor, ganzzahlig ~3×) 
 | **Kristallhöhle** | Steinboden, Höhlenwände, leuchtende Kristalle, unterirdischer See, Stalagmiten, Schatztruhe – stark abgedunkelt, die Figur trägt ein kleines Licht | Mineneingang in den Bergen |
 | **Kristallschlund** *(neu)* | Tiefe Kristallkammer: Vorkammer mit Siegeltor, runde Bossarena mit Runenkreis und Kristallsäulen | Treppe im Weststollen der Kristallhöhle (erst nach der Sprengung) |
 | **Möwenbucht** | Strand mit Palmen, Brandung, Seesternen, Sandburg, Fischerhütte, Steg mit Boot, Leuchtturm auf Felsen, Möwen | Weg nach **Süden** |
+| **Sonnenwüste** *(Phase 5, 80×56)* | Dünen, rote Schluchten, Treibsandfeld, Kakteen, Obelisken, ein halb versunkener Steinkopf, Sandwind; im Osten die **Oase Sandrast** (zweite Siedlung) | Alter Karawanenweg im **Westen** des Dorfes (erst ab der zweiten Geschichte) |
+| **Oase Sandrast** | Quellsee mit Palmen, Brunnen, Lehmhäuser, Marktstand, Selmas Lager; Innenräume **Gasthaus „Zur Kühlen Quelle“** (Wirt Kadir, Ausruhen) und **Nuris Basar** (Laden) | in der Sonnenwüste |
+| **Sonnentempel** *(Phase 5)* | Sandstein-Ruine: Vorhalle, Schlund des Vergessens (nur mit Enterhaken), Sonnenhalle mit Mini-Boss | Ruinentor im Nordwesten der Wüste, hinter dem Treibsand |
+| **Frosthöhen** *(Phase 5, 64×48)* | Gletscher mit Eisklippen, Schnee, Eisspitzen, Gletscherspalte, Frostbarts Hütte mit Lagerfeuer und Schneemann | **Frostpass** am Ostrand der Graufels-Berge |
+| **Eisgrotte** | Spiegelglattes Eis (rutschig!), Eiszapfen, Eisbrocken, Altar des Frosts | Höhleneingang im Nordosten der Frosthöhen (jenseits der Spalte) |
+| **Gezeitentempel** *(Phase 5)* | Versunkener Tempel: Anlegestelle, Kanäle, Vorhalle mit Kohlebecken, Korallen und Seetang, Halle der Gezeiten mit fünf Becken (Endgegnerin) | Mit **Jans Boot** vom Steg der Möwenbucht |
 
 **Innenräume** – alle 4 Dorfhäuser sind begehbar (in die Tür laufen oder davor `E` drücken), jeweils handgestaltet
 mit Holz- bzw. Steinboden, Wänden, Fenstern und blockierenden Möbeln:
@@ -43,6 +49,10 @@ viele geben Hinweise auf die anderen Gebiete, manche reagieren darauf, ob man ei
 | Fischer Jan | Steg am Spiegelsee |
 | Kräuterfrau Mira | Dunkelwald, bei ihrer Hütte |
 | Bergmann Erwin | Graufels-Berge, am Mineneingang |
+| Kartografin Selma *(neu)* | zuerst am Westpfad des Dorfes, dann in ihrem Lager in der Oase – begeistert, chaotisch, hält Karten gern verkehrt herum |
+| Wirt Kadir *(neu)* | Gasthaus in der Oase – Sprichwörter, Minztee, kennt die alten Legenden |
+| Händlerin Nuri *(neu)* | Nuris Basar – trocken-sarkastisch, „Keine Rückgabe!“ |
+| Eremit Frostbart *(neu)* | Frosthöhen – grummelig („Hmpf“), heimlich hilfsbereit |
 
 ## Starten
 
@@ -57,7 +67,8 @@ python3 -m http.server 8080
 URL-Parameter (optional):
 - `?seed=42` – anderer Seed für die Natur im Dorfgebiet (Dorf bleibt gleich)
 - `?map=berge` – direkt in einem Gebiet starten (`village`, `dunkelwald`, `berge`, `hoehle`, `kueste`,
-  `taverne`, `kraemer`, `schmiede`, `zuhause`)
+  `taverne`, `kraemer`, `schmiede`, `zuhause`, `tiefe`, `wueste`, `oase_gasthaus`, `oase_laden`, `ruinen`,
+  `frost`, `eisgrotte`, `tempel`)
 - `?reset=1` – Spielstand löschen und neu beginnen
 
 ## Steuerung
@@ -66,7 +77,7 @@ URL-Parameter (optional):
 |---|---|
 | WASD / Pfeiltasten | Laufen (4 Richtungen, diagonal möglich) |
 | Shift | Rennen |
-| E / Enter | Ansprechen, Tür betreten, Schild lesen, Truhe öffnen · im Dialog: vorspulen / weiter |
+| E / Enter | Ansprechen, Tür betreten, Schild lesen, Truhe öffnen · vor einem Hakenpfahl: **Enterhaken** · am Steg: Boot · im Dialog: vorspulen / weiter |
 | J | Schwertschlag (sobald man ein Schwert hat) |
 | Leertaste | Kontextabhängig: steht man vor etwas Benutzbarem → wie `E`, sonst Schwertschlag |
 | I oder Tab | Inventar öffnen/schließen |
@@ -78,6 +89,9 @@ URL-Parameter (optional):
 | N | Musik an/aus |
 | B | Soundeffekte an/aus |
 | Esc (im Intro/Outro) | Zwischensequenz überspringen · `E` blättert weiter |
+
+Neu in Phase 5: keine zusätzlichen Tasten – Stiefel und Steigeisen wirken automatisch, sobald man sie besitzt,
+der Enterhaken wird wie alles andere mit `E` benutzt.
 | + / - | Zoom (2×–6×) |
 
 **In Fenstern (Inventar, Laden):** Pfeile/WASD wählen, `E`/Enter benutzt bzw. kauft, `Esc` (oder dieselbe Taste) schließt.
@@ -127,6 +141,77 @@ Lebensleiste mit Name und Phasenmarken. 36 LP, Phasenwechsel bei ⅔ und ⅓:
 Trefferblitz, Phasenübergang mit Schockwelle, Trümmern, Beben und kurzer Unverwundbarkeit. Während des
 Kampfes ist das Tor vergittert; wer stirbt, beginnt **direkt vor der Arena** neu (Boss voll geheilt).
 Belohnung: Herzcontainer, 100 Taler, „Splitter des Kristallherzens“ und der Titel „Held von Pixeldorf“.
+
+## Zweite Geschichte „Die Sternensplitter“ (Phase 5)
+
+Beginnt im **freien Spiel nach Umbrakor** (Kapitel 6 der ersten Geschichte): Sobald man in den Westen des Dorfes
+geht, summt der Splitter des Kristallherzens, die Kamera schwenkt zum Westpfad, und **Kartografin Selma** kommt
+über den alten Karawanenweg ins Dorf. Eigene Hauptquest im Questlog (blau abgesetzt), 5 Kapitel mit Bannern:
+
+1. **Ein Gast aus der Ferne** – Selma erzählt vom zerbrochenen Stern über der Sonnenwüste: drei Splitter fielen in Sand, Eis und Meer, und dein Splitter summt im selben Ton. Sie öffnet den Westpfad, gibt dir ihre Karte und reist voraus. In der Oase erzählt Wirt Kadir die Legende vom Gleichgewicht aus Sonne, Frost und Gezeiten – und dass die Wüste jede Nacht wächst.
+2. **Der Sonnentempel** – Sandläufer-Stiefel bei Nuri kaufen, das Treibsandfeld queren, im Tempel den Enterhaken finden, sich über den Schlund ziehen und **Khepran** besiegen. Der Sonnensplitter zeigt den Weg zum Gletscher.
+3. **Eis und Stille** – Über den Frostpass in die Frosthöhen, Eremit Frostbart treffen, per Haken über die Gletscherspalte, in der Eisgrotte den Frostsplitter nehmen – und die erwachenden **Eiswächter** (Welle aus 5 Gegnern) besiegen.
+4. **Jans Boot** – Selma verlängert die Linien beider Splitter: Sie treffen sich im Meer vor der Möwenbucht. Schiffsteer bei Nuri kaufen, Fischer Jan flickt sein Boot und wartet am Steg der Möwenbucht; Bootsfahrt als Zwischensequenz zum Gezeitentempel.
+5. **Die Herrin der Gezeiten** – Endkampf gegen **Thalassa**. Danach Outro (5 Tafeln über alle Gebiete), eigener Abspann und der Titel **„Sternenhüter“**.
+
+Story-Marker `S` (orange) zeigen, wer die Geschichte gerade weiterbringt. Viele bekannte Figuren (Oma Hilde, Greta,
+Lina, Jan) haben neue Zeilen; Hinweise auf den Westpfad gibt es schon vor dem Start.
+
+### Neue Gegner
+
+| Gebiet | Gegner | Verhalten |
+|---|---|---|
+| Sonnenwüste | **Skorpion** | Lauert, setzt dann zum schnellen Stichsprung an |
+| | **Staubgeist** | Fliegt in sprunghaften Wirbeln |
+| | **Sandwurm** | Gräbt sich ein (nur ein Erdhügel wandert), taucht unter dir auf – nur aufgetaucht verwundbar |
+| Frosthöhen / Eisgrotte | **Eisgeist** | Schwebt auf Abstand und schießt Eissplitter (Schwert zerschlägt sie) |
+| | **Frostwolf** | Schneller Sprungangriff im Rudel |
+| | **Eisigel** | Rollt sich zusammen und rast los – dabei unverwundbar, prallt gegen Wände und ist dann benommen |
+| Gezeitentempel | **Qualle** | Treibt schwerelos umher |
+| | **Muschel** | Blockt Treffer von vorn mit der Schale – von hinten oder nach ihrem Schnappangriff zuschlagen |
+
+### Mini-Boss: Khepran, der Skarabäus-Koloss (Sonnentempel)
+
+16 LP, 2 Phasen. Gepanzert – das Schwert prallt ab. **Sturmangriff** (rote Linie als Vorwarnung): Trifft er
+dabei eine der vier Säulen, ist er 2,6 s betäubt (Trefferfenster). **Eingraben**: eine Sandspur folgt dir,
+dann bricht er mit Schockwelle hervor und ist kurz benommen. Phase 2: acht Sandgeschosse beim Auftauchen und
+herbeigerufene Skorpione. Das Sandtor schließt sich während des Kampfes; Tod → Neustart vor der Halle.
+Belohnung: Herzcontainer + 60 Taler; danach erscheint der Sonnenaltar.
+
+### Endgegnerin: Thalassa, die Herrin der Gezeiten (Gezeitentempel)
+
+30 LP, 3 Phasen, taucht zwischen fünf Becken hin und her. Ihr Körper ist aus Wasser – Schwerthiebe gleiten ab.
+Sie wirft **Wasserkugeln**, die man mit dem Schwert **zurückschlägt**; trifft eine reflektierte Kugel, liegt sie
+betäubt am Beckenrand (bis 6 Schaden oder 3 s). Dazu **Flutwellen** (eine Hallenhälfte wird markiert und
+dann überspült), in Phase 2 **Tentakel** (Blasen verraten, wo sie aufsteigen; sie lassen sich abschlagen) und
+in Phase 3 der **Mahlstrom**, der die Figur zur Hallenmitte zieht. Gezeitengitter verriegelt die Halle;
+Tod → Neustart in der Vorhalle. Belohnung: Herzcontainer, 150 Taler, Gezeitenperle, Titel „Sternenhüter“.
+
+### Werkzeuge & Durchquerung
+
+| Werkzeug | Herkunft | Wirkung |
+|---|---|---|
+| **Sandläufer** (Stiefel) | Nuris Basar, 60 Taler | Kein Einsinken im **Treibsand** (ohne: stark gebremst, nach ~1 s ½ Herz Schaden und zurück ans Ufer) |
+| **Enterhaken** | Truhe in der Seitenkammer des Sonnentempels | Vor einem Hakenpfahl `E`: zieht dich über Schlund bzw. Gletscherspalte zum gegenüberliegenden Pfahl |
+| **Steigeisen** | Nebenquest bei Frostbart | Kein Rutschen auf **Eis** (ohne: Schwung baut sich langsam auf und die Figur schlittert nach) |
+| Jans Boot | nach dem Flicken mit Schiffsteer | Fahrt Möwenbucht ↔ Gezeitentempel (Jan bzw. das Boot ansprechen) |
+
+Werkzeuge erscheinen im Inventar in einer eigenen Ausrüstungszeile (Stiefel / Haken / Eisen).
+Neue Items: Selmas Karte, Datteln (Heilung, 8 Taler), Schiffsteer, Wüstenrosen, Eiskristalle, Sonnen- und
+Frostsplitter, Gezeitenperle.
+
+### Neue Nebenquests
+
+- **Rosen aus Sand** (Wirt Kadir): 4 Wüstenrosen in der Sonnenwüste sammeln → Großer Heiltrank + 40 Taler
+- **Eis für den Eremiten** (Frostbart): 3 Eiskristalle (liegen im Schnee, Eisgeister tragen welche) → Steigeisen
+- **Weiße Flecken** (Selma): Sonnenwüste, Sonnentempel, Frosthöhen, Eisgrotte und Gezeitentempel erkunden → Herzcontainer + 50 Taler
+
+**Gasthaus:** Bei Kadir (oder im Gästebett) ausruhen füllt alle Herzen und speichert. **Nuris Basar** hat ein
+eigenes Sortiment (Datteln, Tränke, Sandläufer, später Schiffsteer).
+
+**Musik:** eigene Stücke für Sonnenwüste, Oase, Frosthöhen, Eisgrotte, Gezeitentempel, Khepran und Thalassa;
+neue Klänge u. a. für Einsinken, Rutschen, Enterhaken, Wellen, Eingraben, Einrollen/Aufprall, Gefrieren,
+Blasen, Glockenton des Splitters und Bootsfahrt. Ambiente-Partikel: Sandwind, Eisglitzern, Luftblasen.
 
 ## Audio (alles Web Audio, keine Dateien)
 
@@ -206,7 +291,10 @@ Der Spielstand (Gebiet + Position, Inventar, Taler, Herzen, Ausrüstung, Questfo
 Gegenstände, geöffnete Truhen) wird automatisch im `localStorage` gespeichert – bei jedem Gebietswechsel,
 bei Quest-/Truhen-Ereignissen und regelmäßig nach Änderungen. Beim nächsten Laden geht es dort weiter
 („Spielstand geladen.“). Auch Kapitel, Story-Flags, Titel und Audio-Einstellungen werden gespeichert;
-während eines Bosskampfs wird der Punkt vor der Arena als Position gesichert. **Neues Spiel:** `http://localhost:8080/?reset=1` (löscht den Spielstand).
+während eines Bosskampfs wird der Punkt vor der Arena als Position gesichert. Seit Phase 5 kommen Werkzeuge
+(Stiefel, Haken, Steigeisen) und das Kapitel der zweiten Geschichte (`story.ch2`) dazu; ältere Spielstände
+(auch mitten in der ersten Geschichte) laden weiter – fehlende Felder bekommen Standardwerte, die zweite
+Geschichte gilt dann als noch nicht begonnen. **Neues Spiel:** `http://localhost:8080/?reset=1` (löscht den Spielstand).
 
 ## Aufbau
 
@@ -244,6 +332,15 @@ src/audio.js           Audio-Engine: Sequenzer, Überblenden, Soundeffekte, Eins
 src/music.js           Die Musikstücke (Melodien, Akkorde, Bass-/Arpeggio-/Schlagzeugmuster)
 src/tiles-story.js     Geröll, Siegeltor, Arenagitter, Säulen, Runenkreis, reiner Kristall
 src/maps/tiefe.js      Kristallschlund mit Bossarena
+src/maps/wueste.js     Sonnenwüste, Oase-Innenräume (Gasthaus, Basar), Sonnentempel (Khepran-Arena)
+src/maps/frost.js      Frosthöhen und Eisgrotte
+src/maps/tempel.js     Gezeitentempel (Thalassa-Arena)
+src/tiles-arc2.js      Pixel-Art der neuen Gebiete (Dünen, Treibsand, Ruinen, Eis, Spalte, Tempel, Deko)
+src/story2.js          Zweite Geschichte: Kapitel + Ziele, Story-Dialoge, Marker, Outro, Abspann
+src/arc2.js            Laufzeit der zweiten Geschichte: Auslöser, Szenen, Durchquerung, Altäre, Boot, Boss-Konfiguration
+src/miniboss.js        Khepran: Sprite, Zustände (Sturm, Eingraben, Ausbruch, Betäubung), Sandgeschosse
+src/boss2.js           Thalassa: Sprite, Becken-Wechsel, Wasserkugeln (reflektierbar), Flut, Tentakel, Mahlstrom
+tools/verify-arc2.mjs  Prüfungen der zweiten Geschichte (von verify.mjs aufgerufen, auch eigenständig lauffähig)
 tools/verify.mjs       Headless-Test (Playwright), siehe unten
 screenshots/           Aufnahmen aus dem Headless-Test
 ```
@@ -284,10 +381,22 @@ Rendern von `music-sample.wav`. Neue Screenshots: `story-intro*.png`, `story-lin
 `story-sprengung.png`, `story-siegel.png`, `boss-phase1/2/3.png`, `story-outro.png`, `ending.png`,
 `questlog-main.png`, `options.png`, `story-nachher-dunkelwald.png`.
 
-Debug-Hilfen: `?nointro=1` überspringt das Intro; `window.__game.setStory(kapitel, {flags})` springt in ein Kapitel.
+Seit Phase 5 zusätzlich (`tools/verify-arc2.mjs`): alter Phase-4-Spielstand mitten in Kapitel 3 und einer nach
+dem Ende laden fehlerfrei, gesperrter Westpfad, Auslöser-Szene mit Kameraschwenk, Selma, eigene Hauptquest im
+Questlog, jedes neue Gebiet über seinen echten Zugang (Westpfad, Ruinentür, Frostpass, Grottentür, Bootsfahrt),
+Gebietsmusik, Treibsand (bremst + Schaden; mit Stiefeln normal), Eisrutschen, Enterhaken über Schlund und Spalte,
+neue Gegner mit echten Schwerthieben (Skorpion, Sandwurm, Frostwolf, Qualle, Muschel blockt von vorn),
+Eissplitter-Geschosse, Gasthaus-Rast, Nuris Basar, alle drei Nebenquests, Mini-Boss (Panzer blockt, Säulen-
+Betäubung, echter Treffer, Phase 2, Sieg), Eiswächter-Welle, Thalassa (Schwert gleitet ab, reflektierte Kugel
+betäubt, Phasen 2 und 3, Tod → Neustart, Sieg; Schaden in den Phasen per Debug abgekürzt), Outro, Abspann,
+Speichern/Laden. Screenshots: `area-wueste/oase/ruinen/frost/eisgrotte/tempel.png`, `story2-*.png`,
+`miniboss.png`, `boss2-phase1/2/3.png`, `shop-nuri.png`.
+
+Debug-Hilfen: `?nointro=1` überspringt das Intro; `window.__game.setStory(kapitel, {flags})` springt in ein Kapitel,
+`window.__game.setStory2(kapitel, {flags})` in eines der zweiten Geschichte.
 
 ## Ideen für nächste Schritte
 
-- Weitere Waffen/Werkzeuge (Bogen, Axt), weitere Bosse/Dungeons
+- Weitere Waffen (Bogen, Axt), Schnellreise zwischen Dorf und Oase
 - Wetter, echter Tageszyklus mit NPC-Tagesablauf
 - Mehrere Speicherplätze, Touch-/Gamepad-Steuerung

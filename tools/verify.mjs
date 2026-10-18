@@ -1,9 +1,10 @@
 // Headless-Smoke-Test: lädt das Spiel, prüft die Konsole, simuliert Bewegung, Kollision,
 // Häuser betreten/verlassen, NPC-Gespräch, Gebietswechsel, Items, Inventar, Quests, Kampf,
-// Tod/Respawn, Laden und Speichern/Laden; speichert Screenshots.
+// Tod/Respawn, Laden und Speichern/Laden, beide Geschichten inkl. Bosse; speichert Screenshots.
 // Nutzung:  python3 -m http.server 8080 &   dann:  node tools/verify.mjs
 import { chromium } from 'playwright-core';
 import fs from 'node:fs';
+import { runArc2 } from './verify-arc2.mjs';
 
 const URL = process.env.URL || 'http://localhost:8080/';
 const OUT = new globalThis.URL('../screenshots/', import.meta.url).pathname;
@@ -609,6 +610,9 @@ await goTo('dunkelwald', 32, 40, 'up');
 const fogGone = await G(() => window.__game.story.flags.boss_done);
 await shot('story-nachher-dunkelwald.png');
 check('Nebel im Dunkelwald verschwunden', fogGone);
+
+// ------------------------------------------------------------ 9a. Zweite Geschichte „Die Sternensplitter“ (tools/verify-arc2.mjs)
+await runArc2({ page, URL, OUT, check, problems });
 
 // ------------------------------------------------------------ 9. Audio: Optionen, Umschalten, Persistenz
 await goTo('village', 57, 33, 'down');

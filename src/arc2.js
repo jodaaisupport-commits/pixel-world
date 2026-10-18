@@ -207,7 +207,7 @@ export function createArc2(C) {
       await C.wait(1.6);
       await C.pan(18 * TS, 3 * TS, 1.4);
       await C.say(null, ['Thalassa sinkt seufzend in ihr Becken zurück. „Endlich … Ruhe“, flüstert das Wasser.',
-        'Auf dem Muschelaltar liegt der letzte Splitter. Als du ihn aufhebst, verschmelzen alle drei mit deinem Kristall zu einem kleinen, warmen Stern.']);
+        'Auf dem Muschelaltar liegt der letzte Splitter. Als du ihn aufhebst, leuchten Sonnen-, Frost- und Gezeitensplitter im Einklang mit deinem Kristall – das Lied des Sterns ist wieder vollständig.']);
       G.addMaxHearts(1); game.coins += 150; G.give('gezeitenperle', 1, true); game.title = 'Sternenhüter';
       C.audio.sfx('fanfare');
       await C.say(null, ['Erhalten: Herzcontainer, 150 Taler, die Gezeitenperle und der Titel „Sternenhüter“.']);
