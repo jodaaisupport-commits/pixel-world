@@ -94,7 +94,7 @@ export class UI {
     box.classList.toggle('hidden', !panel.text);
     box.textContent = '';
     this.cineFull = panel.text || ''; this.cineShown = 0;
-    el.querySelector('.cine-hint').textContent = `${idx + 1}/${total} · E – weiter · Esc – überspringen`;
+    el.querySelector('.cine-hint').textContent = `${idx + 1}/${total} · ${this.G.isTouch && this.G.isTouch() ? 'Antippen – weiter' : 'E – weiter · Esc – überspringen'}`;
   }
   cineTick(dt) {
     if (!this.cineFull || this.cineShown >= this.cineFull.length) return false;
@@ -180,7 +180,7 @@ export class UI {
     const eq = (id, label) => `<div class="eq"><div class="slot">${id ? `<img src="${this.icon[id]}">` : ''}</div><span>${label}<br><i>${id ? ITEMS[id].name : '—'}</i></span></div>`;
     const cur = list[this.sel];
     const def = cur && ITEMS[cur];
-    const action = def && def.type === 'use' ? '<em>E – benutzen</em>' : '';
+    const action = def && def.type === 'use' ? `<em>${this.G.isTouch && this.G.isTouch() ? 'Nochmal antippen' : 'E'} – benutzen</em>` : '';
     this.inv.querySelector('.inv-body').innerHTML =
       `<div class="inv-top">${eq(s.weapon, 'Waffe')}${eq(s.lamp ? 'grubenlampe' : null, 'Lampe')}
         <div class="purse"><img src="${this.icon.taler}"> ${s.coins} Taler<br><span class="hp">${s.hp / 2} / ${s.maxHp / 2} Herzen</span></div></div>

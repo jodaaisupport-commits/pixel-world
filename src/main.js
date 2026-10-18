@@ -552,6 +552,7 @@ function stopInput() { for (const k in input) input[k] = false; }
 window.addEventListener('blur', () => { stopInput(); touch.release(); });
 const isMenu = () => !!(ui.open || dialog.open || state.cine || state.credits);
 const touch = createTouch({ onKey: (c) => { if (c === '__unlock') audio.unlock(); else handleKey(c); }, isMenu });
+G.isTouch = () => touch.active;
 G.touchLabel = () => touch.modeLabel();
 G.touchCycle = () => { touch.cycleMode(); resize(); };
 // Tippen auf das Bild: Zwischensequenz/Abspann/Dialog weiter (wie E)
@@ -1243,6 +1244,7 @@ function frame(now) {
   if (state.dirty && now - state.lastSave > 1500 && !state.fade) saveNow();
   dialog.update(dt);
   const mo = !!ui.open; if (mo !== state.menuOpen) { state.menuOpen = mo; document.body.classList.toggle('menu-open', mo); }
+  const dl = dialog.open; if (dl !== state.dlgOpen) { state.dlgOpen = dl; document.body.classList.toggle('dlg-open', dl); }
   updateParticles(dt);
   render(now);
   updateHud();

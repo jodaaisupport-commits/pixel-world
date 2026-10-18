@@ -171,6 +171,7 @@
     .t-btn.down, .t-sm.down { transform: translateY(3px); filter: brightness(0.8); }
     body.cinema #touch { display: none; }
     body.menu-open #touch .t-stick, body.menu-open #touch .t-btns, body.menu-open #touch .t-small, body.menu-open #touch .t-zone { display: none; }
+    body.dlg-open #touch .t-stick, body.dlg-open #touch .t-zone, body.dlg-open #touch .t-small { display: none; }
     body.letterbox #touch .t-small, body.letterbox #touch .t-b, body.letterbox #touch .t-stick { visibility: hidden; }
     /* ---------- Layout auf Touch-Geräten */
     body.touch #help, body.touch .window .hint, body.touch .opt-keys { display: none; }
@@ -185,6 +186,7 @@
     body.touch .ql-body { max-height: none; }
     body.touch #bossbar { top: calc(8px + env(safe-area-inset-top)); max-width: 46vw; }
     body.touch.portrait #dialog { left: 8px; right: 8px; bottom: calc(190px + env(safe-area-inset-bottom)); }
+    body.touch.portrait #prompt { bottom: calc(236px + env(safe-area-inset-bottom)); }
     body.touch.portrait #toasts { right: 8px; top: calc(170px + env(safe-area-inset-top)); }
     body.touch.portrait #bossbar { top: calc(110px + env(safe-area-inset-top)); max-width: 90vw; }
     @media (max-height: 460px) { body.touch .window { font-size: 12px; padding: 8px 12px; } body.touch .window h2 { font-size: 15px; margin-bottom: 6px; } body.touch .inv-top { gap: 10px; } }

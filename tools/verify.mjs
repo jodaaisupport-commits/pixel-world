@@ -2,9 +2,10 @@
 // Häuser betreten/verlassen, NPC-Gespräch, Gebietswechsel, Items, Inventar, Quests, Kampf,
 // Tod/Respawn, Laden und Speichern/Laden, beide Geschichten inkl. Bosse; speichert Screenshots.
 // Nutzung:  python3 -m http.server 8080 &   dann:  node tools/verify.mjs
-import { chromium } from 'playwright-core';
+import { chromium, devices } from 'playwright-core';
 import fs from 'node:fs';
 import { runArc2 } from './verify-arc2.mjs';
+import { runMobile } from './verify-mobile.mjs';
 
 const URL = process.env.URL || 'http://localhost:8080/';
 const OUT = new globalThis.URL('../screenshots/', import.meta.url).pathname;
@@ -644,10 +645,16 @@ await page.waitForFunction(() => window.__game && window.__game.ready, null, { t
 const fresh = await G(() => ({ coins: window.__game.game.coins, weapon: window.__game.game.weapon, url: location.search }));
 check('?reset=1 startet ein neues Spiel', fresh.coins === 10 && !fresh.weapon, fresh);
 
+const desk = await G(() => ({ touch: document.body.classList.contains('touch'), hidden: document.getElementById('touch').classList.contains('hidden'), help: getComputedStyle(document.getElementById('help')).display }));
+check('Desktop: keine Touch-Steuerung eingeblendet, Tastaturhilfe sichtbar', !desk.touch && desk.hidden && desk.help !== 'none', desk);
+const man = await G(() => fetch('manifest.webmanifest').then((r) => r.json()).then(async (m) => ({ name: m.name, icons: await Promise.all(m.icons.map((i) => fetch(i.src).then((r) => r.ok))) })));
+check('Web-App-Manifest und Icons erreichbar', man.name === 'Pixel World' && man.icons.every(Boolean), man);
+
 if (process.env.FULLMAP) {
   const data = await page.evaluate(() => window.__game.fullMapDataURL());
   fs.writeFileSync(process.env.FULLMAP, Buffer.from(data.split(',')[1], 'base64'));
 }
+await runMobile({ browser, URL, OUT, check: (n, ok, info) => check(n, ok, info), devices });
 await browser.close();
 
 check('Konsole fehlerfrei', problems.length === 0, problems);
