@@ -64,7 +64,7 @@ export function dunkelwald() {
   // Schrein mit Säulen
   m.place('shrine', 31, 7, 2, 1);
   m.light(32 * TS, 7 * TS + 4, 64, 'rgba(190,130,255,0.6)', 0.6);
-  m.interact.push({ x: 31.5, y: 7, text: 'Ein uralter Schrein. Die Rune pulsiert sanft violett … als würde sie auf etwas warten.' });
+  m.interact.push({ x: 31.5, y: 7, id: 'schrein', text: 'Ein uralter Schrein. Die Rune pulsiert sanft violett … als würde sie auf etwas warten.' });
   for (const [x, y, v] of [[27, 5, 0], [36, 5, 1], [26, 10, 1], [37, 10, 0]]) m.place('pillar' + v, x, y);
   // Glühpilz-Ring + Kräuterfrau
   for (let k = 0; k < 9; k++) {
@@ -321,6 +321,8 @@ export function hoehle() {
   carvePath(m, [[19.5, 28], [19, 22], [13, 17], [9, 10], [17, 5], [27, 6], [32, 14], [28, 22], [21, 22]], { width: 3, wobble: 4, noise: n, onTile: floor });
   const chamber = (cx, cy, r) => { for (let y = cy - r - 2; y <= cy + r + 2; y++) for (let x = cx - r - 2; x <= cx + r + 2; x++) if (Math.hypot(x - cx, (y - cy) * 1.2) < r + (fbm(n, x / 3, y / 3, 2) - 0.5) * 2.5) floor(x, y); };
   chamber(11, 12, 4); chamber(25, 6, 4); chamber(31, 17, 5); chamber(19, 23, 3);
+  // Alter Weststollen (Hauptgeschichte): erst nach dem Sprengen des Gerölls begehbar
+  for (let x = 1; x <= 8; x++) for (const y of [12, 13]) m.set(x, y, T.CAVE);
   // Wände etwas ausfransen (nur Boden hinzufügen -> Verbindungen bleiben erhalten)
   const next = m.ground.slice();
   for (let y = 2; y < H - 2; y++) for (let x = 2; x < W - 2; x++) {
@@ -357,9 +359,14 @@ export function hoehle() {
     else if (h > 0.97) m.decal(h > 0.985 ? 'bones' : 'puddle', x * TS, y * TS + 4);
   }
   m.chest(25, 5, [['sternenerz', 1], ['taler', 25]]);
+  m.place('rubble', 5, 12, 2, 2, 0, { hideIf: 'rubble' });
+  m.interact.push({ x: 7, y: 12, id: 'schutt', text: 'Ein Haufen Geröll versperrt einen alten Stollen.' });
+  m.decal('stairs_w', 1 * TS, 12 * TS);
+  m.exit(1, 12, 1, 2, 'tiefe', 16, 33, 'up', 'door');
+  m.light(2 * TS, 13 * TS, 30, 'rgba(190,90,255,0.5)', 0.5);
   for (const [x, y] of [[10, 12], [30, 9], [33, 23], [14, 19]]) { const f = m.findFree(x, y, (t) => t === T.CAVE); if (f) m.pickup('kristall', f[0], f[1]); }
   m.scatterEnemies('bat', 6, (t) => t === T.CAVE, 7);
   m.light(25 * TS + 8, 5 * TS + 8, 30, 'rgba(255,210,100,0.45)', 0.3);
-  m.biomeAt = (tx, ty) => (Math.hypot(tx - 25, ty - 6) < 5 ? 'Schatzkammer' : Math.hypot(tx - 32, ty - 17) < 6 ? 'Unterirdischer See' : 'Kristallhöhle');
+  m.biomeAt = (tx, ty) => (tx <= 8 && ty >= 11 && ty <= 14 ? 'Weststollen' : Math.hypot(tx - 25, ty - 6) < 5 ? 'Schatzkammer' : Math.hypot(tx - 32, ty - 17) < 6 ? 'Unterirdischer See' : 'Kristallhöhle');
   return m.finalize();
 }

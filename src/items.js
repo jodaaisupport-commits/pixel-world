@@ -20,6 +20,8 @@ export const ITEMS = {
   schluessel: { name: 'Alter Schlüssel', type: 'key', desc: 'Rostig. Der Bart hat die Form eines kleinen Leuchtturms.' },
   schwert: { name: 'Eisenschwert', type: 'equip', slot: 'weapon', dmg: 1, reach: 0, desc: 'Brunos altes Schwert. Nicht schön, aber es schneidet. (Schaden 1)' },
   kristallklinge: { name: 'Kristallklinge', type: 'equip', slot: 'weapon', dmg: 2, reach: 4, desc: 'Von Bruno geschmiedet, mit Sternenerz veredelt. Schaden 2, größere Reichweite.' },
+  sprengpulver: { name: 'Sprengpulver', type: 'quest', desc: 'Erwins letztes Fässchen Sprengpulver. Damit lässt sich Geröll wegsprengen. Nicht schütteln!' },
+  kristallherz: { name: 'Splitter des Kristallherzens', type: 'quest', desc: 'Ein warm leuchtender, blauer Splitter. Erinnerung an den Sieg über Umbrakor.' },
   grubenlampe: { name: 'Grubenlampe', type: 'equip', slot: 'lamp', desc: 'Erwins alte Lampe. In Höhlen siehst du deutlich weiter.' },
 };
 
@@ -118,6 +120,20 @@ export function swordPix(kind = 'schwert', len = 10) {
   for (const [x, y] of [[2, 10], [3, 11], [5, 13], [6, 14], [4, 12]]) p.set(x, y, crystal ? '#c98aff' : '#d9a63a');
   return p.outlined('#1a1418');
 }
+function powder() {
+  const p = new Pix(16, 16);
+  p.rect(3, 5, 10, 9, '#8c5e36'); p.hline(3, 12, 5, '#b07e4c'); p.hline(3, 12, 13, '#3d2516');
+  p.hline(3, 12, 7, '#4a4a52'); p.hline(3, 12, 11, '#4a4a52'); p.vline(3, 5, 13, '#664226');
+  p.rect(6, 8, 4, 2, '#e8dcc2'); p.set(7, 8, '#20161a'); p.set(8, 9, '#20161a');
+  p.vline(8, 2, 4, '#c9b89a'); p.set(9, 1, '#ffb83a'); p.set(9, 0, '#fff1a6'); p.set(10, 1, '#ff7a2a');
+  return p.outlined('#1a1410');
+}
+function heartShard() {
+  const p = new Pix(16, 16);
+  for (let y = 1; y < 15; y++) { const w = y < 6 ? y * 0.9 : (15 - y) * 0.55; for (let x = Math.round(8 - w); x <= Math.round(8 + w); x++) p.set(x, y, x < 7 ? '#bfeaff' : x === 7 || x === 8 ? '#ffffff' : '#3a8ad0'); }
+  p.set(3, 3, '#fff7d0'); p.set(13, 5, '#fff7d0');
+  return p.outlined('#0c1a2a');
+}
 function lamp() {
   const p = new Pix(16, 16);
   p.hline(6, 10, 1, '#4a4440'); p.set(5, 2, '#4a4440'); p.set(11, 2, '#4a4440');
@@ -144,6 +160,8 @@ export function buildItemArt() {
     schwert: swordPix('schwert').canvas(),
     kristallklinge: swordPix('kristallklinge').canvas(),
     grubenlampe: lamp().canvas(),
+    sprengpulver: powder().canvas(),
+    kristallherz: heartShard().canvas(),
   };
   return {
     icons,

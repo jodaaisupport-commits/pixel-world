@@ -42,8 +42,18 @@ export class NPC {
     this.dir = Math.abs(dx) > Math.abs(dy) ? (dx < 0 ? 'left' : 'right') : (dy < 0 ? 'up' : 'down');
   }
 
+  /** Geskriptete Bewegung (Zwischensequenzen): erst waagerecht, dann senkrecht, ohne Kollision. */
+  walkTo(tx, ty, speed = 60) { return new Promise((res) => { this.script = { tx, ty, speed, res }; }); }
   update(dt, map, player) {
     this.moving = false;
+    if (this.script) {
+      const s = this.script, dx = s.tx - this.x, dy = s.ty - this.y, step = s.speed * dt;
+      if (Math.abs(dx) > 0.5) { this.dir = dx < 0 ? 'left' : 'right'; this.x += Math.sign(dx) * Math.min(step, Math.abs(dx)); }
+      else if (Math.abs(dy) > 0.5) { this.dir = dy < 0 ? 'up' : 'down'; this.y += Math.sign(dy) * Math.min(step, Math.abs(dy)); }
+      else { this.script = null; this.state = 'idle'; this.timer = 2; s.res(); return; }
+      this.moving = true; this.anim += dt * (s.speed > 40 ? 12 : 7);
+      return;
+    }
     if (this.talking) { this.facePlayer(player); this.anim = 0; return; }
     this.timer -= dt;
     if (this.mode === 'stand') {

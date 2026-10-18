@@ -36,7 +36,7 @@ export function createMap({ id, name, W, H, fill = T.GRASS, seed = 1, kind = 'ou
   m.hash = (x, y, s = 0) => hash2(x, y, seed + s);
   /** Objekt platzieren; solidFrom = erste blockierende Footprint-Reihe (99 = gar nicht). */
   m.place = (sprite, tx, ty, fw = 1, fh = 1, solidFrom = 0, extra = {}) => {
-    const o = { sprite, tx, ty, fw, fh, ...extra };
+    const o = { sprite, tx, ty, fw, fh, solidFrom, ...extra };
     m.objects.push(o);
     for (let y = ty; y < ty + fh; y++)
       for (let x = tx; x < tx + fw; x++) {

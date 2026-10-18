@@ -9,11 +9,14 @@ export class Dialog {
     this.open = false;
     this.pages = []; this.page = 0; this.shown = 0; this.onClose = null; this.choice = null; this.sel = 0;
     this.cps = 45; // Zeichen pro Sekunde
+    this.onBlip = null; // Callback für Tipp-Geräusche
+    this.name = '';
   }
   /** choice: { options: [..], onSelect(index) } – erscheint auf der letzten Seite. */
   show(name, pages, onClose = null, choice = null) {
     this.pages = Array.isArray(pages) ? pages : [pages];
     this.page = 0; this.shown = 0; this.onClose = onClose; this.choice = choice; this.sel = 0;
+    this.name = name || '';
     this.nameEl.textContent = name || '';
     this.nameEl.classList.toggle('hidden', !name);
     this.root.classList.remove('hidden');
@@ -25,10 +28,13 @@ export class Dialog {
   get choosing() { return !!this.choice && this.page >= this.pages.length - 1 && !this.typing; }
   update(dt) {
     if (!this.open || !this.typing) return;
+    const before = Math.floor(this.shown);
     this.shown = Math.min(this.current.length, this.shown + dt * this.cps);
+    const now = Math.floor(this.shown);
+    if (this.onBlip && now !== before && now % 2 === 0 && this.current[now - 1] && this.current[now - 1] !== ' ') this.onBlip(this.name);
     this.render();
   }
-  move(d) { if (this.choosing) { this.sel = (this.sel + d + this.choice.options.length) % this.choice.options.length; this.render(); } }
+  move(d) { if (this.choosing) { this.sel = (this.sel + d + this.choice.options.length) % this.choice.options.length; if (this.onSelect) this.onSelect(); this.render(); } }
   /** E/Leertaste: Text sofort fertig schreiben, sonst nächste Seite, Auswahl bestätigen bzw. schließen. */
   advance() {
     if (!this.open) return;

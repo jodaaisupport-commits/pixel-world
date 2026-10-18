@@ -130,6 +130,7 @@ export const ENEMY_DEFS = {
   bat: { name: 'Fledermaus', hp: 1, speed: 30, chase: 50, aggro: 100, dmg: 1, hw: 6, h: 6, art: 'bat', fly: true, drops: [['taler', 0.5, 1], ['herz', 0.25, 1]] },
   crab: { name: 'Krabbe', hp: 3, speed: 22, chase: 36, aggro: 72, dmg: 1, hw: 7, h: 6, art: 'crab', sideways: true, drops: [['taler', 0.75, 2], ['herz', 0.25, 1]] },
   wolf: { name: 'Bergwolf', hp: 3, speed: 26, chase: 46, aggro: 100, dmg: 1, hw: 7, h: 6, art: 'wolf', lunge: true, drops: [['taler', 0.8, 3], ['herz', 0.3, 1]] },
+  schatten: { name: 'Schattenschleim', hp: 2, speed: 22, chase: 40, aggro: 200, dmg: 1, hw: 6, h: 7, art: 'moorslime', hop: true, drops: [['herz', 0.45, 1]] },
   golem: { name: 'Felsgolem', hp: 6, speed: 11, chase: 18, aggro: 90, dmg: 2, hw: 8, h: 8, art: 'golem', heavy: true, drops: [['eisenerz', 1, 1], ['taler', 1, 5]] },
 };
 

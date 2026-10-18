@@ -46,6 +46,50 @@ async function goTo(id, tx, ty, dir) {
 const teleport = (tx, ty, dir) => page.evaluate(([x, y, d]) => window.__game.teleport(x, y, d), [tx, ty, dir]);
 const dialogState = () => page.evaluate(() => { const d = document.getElementById('dialog'); return { visible: !d.classList.contains('hidden'), name: d.querySelector('.dlg-name').textContent, text: d.querySelector('.dlg-text').textContent, page: d.querySelector('.dlg-more').dataset.page }; });
 
+// ------------------------------------------------------------ 0. Story-Intro (neues Spiel)
+const G0 = (fn, a) => page.evaluate(fn, a);
+const tracksSeen = new Set();
+const noteTrack = async () => { const t = await G0(() => window.__game.audio.state.track); if (t) tracksSeen.add(t); return t; };
+async function dialogOpen() { return G0(() => !document.getElementById('dialog').classList.contains('hidden')); }
+/** Dialog per E durchblättern (erst Text komplett, dann weiter). */
+async function talkThrough(max = 48) {
+  for (let i = 0; i < max; i++) {
+    if (!(await dialogOpen())) return i;
+    await page.keyboard.press('KeyE'); await page.waitForTimeout(110); // einzeln drücken: ein zweites E nach dem Schließen würde neu anreden
+  }
+  return max;
+}
+await page.keyboard.press('KeyX'); // erste Eingabe → AudioContext darf starten
+await page.waitForTimeout(2600);
+const intro0 = await G0(() => ({ cine: window.__game.cine, ch: window.__game.story.ch, title: document.querySelector('#cine .cine-title')?.textContent || '' }));
+check('Intro-Zwischensequenz startet bei neuem Spiel', intro0.cine && intro0.cine.total >= 4 && intro0.ch === 0, intro0);
+await shot('story-intro.png');
+const panelsSeen = new Set();
+for (let i = 0; i < 30; i++) {
+  const c = await G0(() => window.__game.cine);
+  if (!c) break;
+  panelsSeen.add(c.idx);
+  if (c.idx === 2 && !panelsSeen.has('shot')) { await page.waitForTimeout(2200); await shot('story-intro-2.png'); panelsSeen.add('shot'); }
+  await page.keyboard.press('KeyE'); await page.waitForTimeout(150); await page.keyboard.press('KeyE'); await page.waitForTimeout(700);
+}
+check('Intro: alle Tafeln durchgeblättert', [0, 1, 2, 3, 4].every((i) => panelsSeen.has(i)), [...panelsSeen]);
+await page.waitForFunction(() => !document.getElementById('dialog').classList.contains('hidden'), null, { timeout: 8000 }).catch(() => {});
+await page.waitForTimeout(700);
+const lina = await dialogState();
+await shot('story-lina.png');
+check('Geskriptete Szene: Lina läuft herbei und spricht', lina.visible && /Lina/.test(lina.name), lina.name);
+await talkThrough();
+await page.waitForFunction(() => !window.__game.script, null, { timeout: 8000 }).catch(() => {});
+await page.waitForTimeout(500);
+const ch1 = await G0(() => ({ ch: window.__game.story.ch, banner: document.getElementById('banner').textContent }));
+check('Kapitel 1 beginnt nach dem Intro', ch1.ch === 1 && /Kapitel 1/.test(ch1.banner), ch1);
+const au0 = await G0(() => window.__game.audio.state);
+await noteTrack();
+check('AudioContext ohne Fehler erzeugt, Dorfmusik läuft', au0.ready && au0.ctxState !== 'closed' && au0.errors.length === 0 && au0.track === 'village', { ctx: au0.ctxState, track: au0.track, errors: au0.errors });
+check('Soundeffekte werden ausgelöst (Dialog-Blips, Auswahl)', (au0.played.blip || 0) > 10 && (au0.played.select || 0) > 0, au0.played);
+await G0(() => window.__game.teleport(57.5, 31, 'down'));
+await page.waitForTimeout(3200); // Banner ausblenden lassen
+
 // ------------------------------------------------------------ 1. Bewegung
 const spawn = await pos();
 await shot('spawn.png');
@@ -409,6 +453,188 @@ await page.waitForTimeout(400);
 const after = await G(() => { const g = window.__game.game; return JSON.stringify({ coins: g.coins, inv: g.inv, quests: g.quests, weapon: g.weapon, maxHp: g.maxHp, opened: g.opened }); });
 const afterPos = await pos();
 check('Speichern/Laden: Fortschritt bleibt nach Neuladen erhalten', before === after && afterPos.scene === 'village', { same: before === after, pos: afterPos });
+// ------------------------------------------------------------ 7. Hauptgeschichte „Der Kristallfluch“
+async function talkStory(id) {
+  await G((i) => { const g = window.__game, n = g.scene.npcs.find((k) => k.id === i); n.state = 'idle'; n.timer = 5; g.player.x = n.x; g.player.y = n.y + 15; g.player.dir = 'up'; g.player.kbt = 0; }, id);
+  await page.waitForTimeout(60);
+  await page.keyboard.press('KeyE'); await page.waitForTimeout(350);
+  const d = await dialogState(); let text = d.text;
+  for (let i = 0; i < 48 && (await dialogOpen()); i++) { await page.keyboard.press('KeyE'); await page.waitForTimeout(110); if (await dialogOpen()) text += ' ' + (await dialogState()).text; }
+  return { name: d.name, text };
+}
+const story = () => G(() => ({ ch: window.__game.story.ch, f: { ...window.__game.story.flags } }));
+/** Laufendes Skript zu Ende spielen: offene Dialoge weiterblättern, bis das Skript fertig ist. */
+async function finishScript(timeout = 25000) {
+  const t0 = Date.now();
+  while (Date.now() - t0 < timeout && (await G(() => window.__game.script))) { if (await dialogOpen()) await page.keyboard.press('KeyE'); await page.waitForTimeout(140); }
+}
+const waitScript = () => page.waitForFunction(() => !window.__game.script, null, { timeout: 20000 }).catch(() => {});
+const clearEnemies = () => G(() => { window.__game.scene.enemies.length = 0; });
+// Kapitel 1 → 2: Oma Hilde (Schwert-Quest ist schon erledigt)
+await goTo('zuhause', 8, 8, 'up');
+const hil = await talkStory('hilde');
+await page.waitForTimeout(700);
+let sst = await story();
+check('Kapitel 1: Oma Hilde erzählt vom Kristallherz → Kapitel 2', /Kristallherz/.test(hil.text) && sst.f.hilde && sst.ch === 2, { ch: sst.ch });
+await page.waitForTimeout(2600);
+await page.keyboard.press('KeyQ'); await page.waitForTimeout(300);
+const qlMain = await G(() => { const m = document.querySelector('#questlog .quest.main'); return m ? m.textContent : ''; });
+await shot('questlog-main.png');
+await page.keyboard.press('KeyQ');
+check('Questlog: Hauptquest hervorgehoben (Kapitel 2/5)', /Hauptquest/.test(qlMain) && /Kapitel 2/.test(qlMain), qlMain.slice(0, 80));
+// Kapitel 2: Mira → Schrein (geskriptet: Kameraschwenk, Bildschirmbeben, Schattenschleime)
+await goTo('dunkelwald', 50, 33, 'up'); await clearEnemies();
+await noteTrack();
+const mi = await talkStory('mira');
+check('Mira spricht über den Nebel (Story-Dialog)', (await story()).f.mira && /Nebel/.test(mi.text), mi.text.slice(0, 60));
+await goTo('dunkelwald', 31.5, 8.6, 'up'); await clearEnemies();
+await page.keyboard.press('KeyE'); await page.waitForTimeout(300); await talkThrough(6);
+await page.waitForTimeout(1950);
+await shot('story-schrein.png');
+const shrineCam = await G(() => ({ cam: !!window.__game.state.cam, shake: window.__game.state.shake > 0 }));
+await page.waitForTimeout(3200); await finishScript(); await page.waitForTimeout(500);
+sst = await story();
+const shadows = await G(() => window.__game.enemies.filter((e) => e.type === 'schatten').length);
+check('Schrein-Szene: Kameraschwenk + Beben, Schattenschleime erscheinen → Kapitel 3', shrineCam.cam && sst.f.schrein && sst.ch === 3 && shadows === 3, { shrineCam, ch: sst.ch, shadows });
+// Kapitel 3: Erwin, Grubenlampe, Sprengpulver, Geröll
+await goTo('berge', 43, 13, 'up'); await clearEnemies(); await noteTrack();
+const er1 = await talkStory('erwin');
+await G(() => { const g = window.__game; g.game.lamp = true; g.G.markDirty(); }); // Lampe (Nebenquest) per Debug
+const er2 = await talkStory('erwin');
+check('Erwin: Weststollen + Sprengpulver nach der Grubenlampe', /Weststollen/.test(er1.text) && (await G(() => window.__game.G.has('sprengpulver'))), er2.text.slice(0, 50));
+await goTo('hoehle', 9.5, 12.6, 'left'); await clearEnemies(); await noteTrack();
+await hold('KeyA', 900);
+const blocked = await pos();
+check('Geröll versperrt den Weststollen', blocked.scene === 'hoehle' && blocked.tx >= 7, blocked);
+await G(() => window.__game.teleport(7.5, 12.6, 'left'));
+await page.keyboard.press('KeyE'); await page.waitForTimeout(300); await talkThrough(6);
+await page.waitForTimeout(1650); await shot('story-sprengung.png');
+await page.waitForTimeout(1000); await finishScript(); await page.waitForTimeout(400);
+sst = await story();
+check('Sprengung: Geröll weg → Kapitel 4', sst.f.rubble && sst.ch === 4, { ch: sst.ch });
+const tf = await walkUntilScene('KeyA', 'tiefe', 5000);
+check('Treppe hinab in den Kristallschlund', tf.scene === 'tiefe', tf);
+// Kapitel 4: Siegeltor (Gate: nur mit Kristallklinge)
+await goTo('tiefe', 15.5, 22.6, 'up');
+await page.keyboard.press('KeyE'); await page.waitForTimeout(300);
+let gateText = '';
+for (let i = 0; i < 20 && (await dialogOpen()); i++) { await page.keyboard.press('KeyE'); await page.waitForTimeout(110); if (await dialogOpen()) gateText += ' ' + (await dialogState()).text; }
+check('Siegeltor bleibt ohne Kristallklinge zu', !(await story()).f.tor && /Sternenerz/.test(gateText), gateText.slice(0, 60));
+await G(() => { const g = window.__game; g.G.give('kristallklinge', 1, true); g.game.weapon = 'kristallklinge'; g.game.quests.klinge = 'done'; g.G.markDirty(); }); // Nebenquest per Debug
+await page.waitForTimeout(400);
+await page.keyboard.press('KeyE'); await page.waitForTimeout(300); await talkThrough(6);
+await page.waitForTimeout(700); await shot('story-siegel.png');
+await page.waitForTimeout(3000); await finishScript(); await page.waitForTimeout(400);
+sst = await story();
+check('Kristallklinge bricht das Siegel → Kapitel 5', sst.f.tor && sst.ch === 5, { ch: sst.ch });
+
+// ------------------------------------------------------------ 8. Bosskampf: Umbrakor
+const boss = () => G(() => { const g = window.__game, b = g.boss; return { fight: g.fight, script: g.script, hp: b && b.hp, max: b && b.maxHp, phase: b && b.phase, st: b && b.state, lock: !!g.story.flags.arena_lock, bar: !document.getElementById('bossbar').classList.contains('hidden'), track: g.audio.state.track, scene: g.sceneId }; });
+const heal = () => G(() => { const g = window.__game; g.game.hp = g.game.maxHp; });
+await hold('KeyW', 900);
+await page.waitForFunction(() => window.__game.fight && !window.__game.script, null, { timeout: 15000 }).catch(() => {});
+await page.waitForTimeout(400);
+let bs = await boss(); await noteTrack();
+check('Arena betreten → Boss-Intro, Tore verriegelt, Lebensleiste, Bossmusik', bs.fight && bs.lock && bs.bar && bs.track === 'boss' && bs.st !== 'sleep', bs);
+await heal(); await page.waitForTimeout(2600); await heal();
+await shot('boss-phase1.png');
+// echter Schwertschlag
+const hp0 = (await boss()).hp;
+for (let i = 0; i < 12 && (await boss()).hp >= hp0; i++) {
+  await G(() => { const g = window.__game, b = g.boss; g.teleport(b.x / 16 - 0.5, (b.y + 18) / 16 - 0.75, 'up'); g.game.hp = g.game.maxHp; });
+  await page.keyboard.press('KeyJ'); await page.waitForTimeout(160);
+}
+bs = await boss();
+check('Boss nimmt Schwertschaden (Trefferblitz)', bs.hp < hp0, { hp0, hp: bs.hp });
+await G(() => window.__game.teleport(15.5, 17, 'up'));
+await G(() => { const g = window.__game, b = g.boss; for (let k = 0; k < 60 && b.phase < 2; k++) { b.inv = 0; if (b.state !== 'transition') b.hurt(1, g.bossEnv); } });
+await page.waitForTimeout(400);
+bs = await boss();
+check('Phasenwechsel bei 2/3 Leben (Übergangseffekt)', bs.phase === 2 && bs.st === 'transition', bs);
+await page.waitForTimeout(2400); await heal();
+await G(() => window.__game.teleport(15.5, 16.5, 'up'));
+await page.waitForFunction(() => { const b = window.__game.boss; window.__game.game.hp = window.__game.game.maxHp; return b && ['spikes', 'summon'].includes(b.state); }, null, { timeout: 12000, polling: 50 }).catch(() => {});
+await page.waitForTimeout(700); await heal();
+await shot('boss-phase2.png');
+bs = await boss();
+check('Phase 2 greift an (neue Angriffsmuster)', bs.phase === 2 && bs.fight, bs);
+// Tod in der Arena → Neustart vor der Arena
+await G(() => { const g = window.__game; g.game.hp = 1; g.player.inv = 0; g.bossEnv.hurt(2, g.boss); });
+await page.waitForTimeout(300);
+await page.waitForFunction(() => window.__game.sceneId === 'tiefe' && !window.__game.fading && !window.__game.dying, null, { timeout: 8000 }).catch(() => {});
+await page.waitForTimeout(400);
+const rsp = await G(() => { const g = window.__game; return { scene: g.sceneId, ty: Math.floor(g.player.y / 16), hp: g.game.hp, max: g.game.maxHp, boss: g.boss && g.boss.state, bhp: g.boss && g.boss.hp, lock: !!g.story.flags.arena_lock, fight: g.fight }; });
+check('Tod im Bosskampf → Neuversuch vor der Arena (Boss zurückgesetzt)', rsp.scene === 'tiefe' && rsp.ty >= 22 && rsp.hp === rsp.max && rsp.boss === 'sleep' && rsp.bhp === 36 && !rsp.lock && !rsp.fight, rsp);
+await page.keyboard.down('KeyW');
+await page.waitForFunction(() => window.__game.script || window.__game.fight, null, { timeout: 8000 }).catch(() => {});
+await page.keyboard.up('KeyW');
+await page.waitForFunction(() => window.__game.fight && !window.__game.script, null, { timeout: 15000 }).catch(() => {});
+await heal();
+/** Debug-Schaden (wartet Phasenübergänge ab), bis die Bedingung erfüllt ist. */
+async function damageUntil(cond, dmg = 1, timeout = 20000) {
+  const t0 = Date.now();
+  while (Date.now() - t0 < timeout) {
+    const r = await G(([c, d]) => { const g = window.__game, b = g.boss; if (!b || new Function('b', 'return ' + c)(b)) return true; if (b.vulnerable) b.hurt(d, g.bossEnv); g.game.hp = g.game.maxHp; return false; }, [cond, dmg]);
+    if (r) return true;
+    await page.waitForTimeout(80);
+  }
+  return false;
+}
+await damageUntil('b.phase >= 3');
+await page.waitForTimeout(3600); await heal();
+await shot('boss-phase3.png');
+bs = await boss();
+check('Phase 3 erreicht', bs.phase === 3, bs);
+await damageUntil("b.hp <= 0 || b.state === 'dying'", 2);
+await page.waitForFunction(() => !window.__game.fight, null, { timeout: 8000 }).catch(() => {});
+await page.waitForTimeout(1500);
+for (let i = 0; i < 20 && !(await G(() => window.__game.cine)); i++) { if (await dialogOpen()) await talkThrough(4); await page.waitForTimeout(400); }
+const outro = await G(() => ({ cine: window.__game.cine, done: !!window.__game.story.flags.boss_done, title: window.__game.game.title, herz: window.__game.G.count('kristallherz'), track: window.__game.audio.state.track }));
+await noteTrack();
+check('Boss besiegt → Belohnung (Herzcontainer, Titel, Splitter) + Outro', outro.done && outro.cine && outro.title === 'Held von Pixeldorf' && outro.herz === 1 && outro.track === 'ending', outro);
+await page.waitForTimeout(2600); await shot('story-outro.png');
+for (let i = 0; i < 30 && !(await G(() => window.__game.credits)); i++) { await page.keyboard.press('KeyE'); await page.waitForTimeout(150); await page.keyboard.press('KeyE'); await page.waitForTimeout(600); }
+await page.waitForTimeout(12000);
+await shot('ending.png');
+check('Abspann (Credits) wird gezeigt', await G(() => window.__game.credits));
+await page.keyboard.press('KeyE');
+await page.waitForFunction(() => window.__game.sceneId === 'village' && !window.__game.script && !window.__game.fading, null, { timeout: 10000 }).catch(() => {});
+await page.waitForTimeout(600);
+const post = await G(() => ({ ch: window.__game.story.ch, scene: window.__game.sceneId, banner: document.getElementById('banner').textContent }));
+check('Nach dem Abspann: freies Spiel (Kapitel 6, Hauptquest abgeschlossen)', post.ch === 6 && post.scene === 'village' && /abgeschlossen/.test(post.banner), post);
+await page.waitForTimeout(3000);
+const linaPost = await talkStory('lina');
+check('Geänderte NPC-Dialoge nach dem Ende (Lina)', /Held/.test(linaPost.text), linaPost.text.slice(0, 60));
+await goTo('dunkelwald', 32, 40, 'up');
+const fogGone = await G(() => window.__game.story.flags.boss_done);
+await shot('story-nachher-dunkelwald.png');
+check('Nebel im Dunkelwald verschwunden', fogGone);
+
+// ------------------------------------------------------------ 9. Audio: Optionen, Umschalten, Persistenz
+await goTo('village', 57, 33, 'down');
+await page.waitForTimeout(2600);
+await page.keyboard.press('KeyP'); await page.waitForTimeout(300);
+await page.keyboard.press('ArrowDown'); await page.keyboard.press('ArrowRight'); await page.waitForTimeout(150);
+const opt = await G(() => ({ open: !document.getElementById('options').classList.contains('hidden'), text: document.getElementById('options').textContent, vol: window.__game.audio.settings.musicVol }));
+await shot('options.png');
+await page.keyboard.press('Escape'); await page.waitForTimeout(150);
+check('Optionsmenü (P): Lautstärke einstellbar', opt.open && /Musik-Lautstärke/.test(opt.text) && Math.abs(opt.vol - 0.7) < 0.01, { vol: opt.vol });
+await page.keyboard.press('KeyN'); await page.keyboard.press('KeyB'); await page.waitForTimeout(200);
+const muted = await G(() => window.__game.audio.settings);
+await page.goto(URL, { waitUntil: 'networkidle' });
+await page.waitForFunction(() => window.__game && window.__game.ready, null, { timeout: 15000 });
+const persisted = await G(() => window.__game.audio.settings);
+check('N/B schalten Musik/Effekte, Einstellung bleibt gespeichert', !muted.music && !muted.sfx && !persisted.music && !persisted.sfx && Math.abs(persisted.musicVol - 0.7) < 0.01, persisted);
+await page.keyboard.press('KeyN'); await page.keyboard.press('KeyB');
+await G(() => window.__game.audio.setSettings({ musicVol: 0.6 }));
+await page.waitForTimeout(400);
+const au1 = await G(() => window.__game.audio.state);
+check('Musik wechselt je Gebiet (Dorf, Wald, Berge, Höhle, Boss, Ende)', ['village', 'forest', 'mountain', 'cave', 'boss', 'ending'].every((t) => tracksSeen.has(t)) && au1.errors.length === 0, [...tracksSeen]);
+// Musikprobe: Dorf-Thema offline rendern (OfflineAudioContext → WAV)
+const wav = await G(() => window.__game.audio.renderWav('village', 20));
+fs.writeFileSync(OUT + 'music-sample.wav', Buffer.from(wav, 'base64'));
+check('Musikprobe gerendert (screenshots/music-sample.wav)', fs.statSync(OUT + 'music-sample.wav').size > 1e6, fs.statSync(OUT + 'music-sample.wav').size);
+
 await page.goto(URL + (URL.includes('?') ? '&' : '?') + 'reset=1', { waitUntil: 'networkidle' });
 await page.waitForFunction(() => window.__game && window.__game.ready, null, { timeout: 15000 });
 const fresh = await G(() => ({ coins: window.__game.game.coins, weapon: window.__game.game.weapon, url: location.search }));

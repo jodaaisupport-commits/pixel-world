@@ -9,6 +9,8 @@ export function newGameState() {
     quests: { schwert: 'active' },
     taken: {},               // dauerhaft eingesammelte Welt-Gegenstände
     opened: {},              // geöffnete Truhen
+    story: { ch: 0, flags: {} }, // Hauptgeschichte: Kapitel (0 = Intro) + Story-Flags
+    title: null,             // Ehrentitel nach dem Sieg
   };
 }
 
@@ -20,6 +22,7 @@ export function saveGame(game, pos) {
       map: pos.map, x: pos.x, y: pos.y, dir: pos.dir,
       hp: s.hp, maxHp: s.maxHp, coins: s.coins, inv: s.inv, weapon: s.weapon, lamp: s.lamp,
       quests: s.quests, taken: s.taken, opened: s.opened, visited: [...pos.visited], tint: pos.tint,
+      story: s.story, title: s.title, settings: pos.settings || null,
     };
     localStorage.setItem(KEY, JSON.stringify(data));
     return true;

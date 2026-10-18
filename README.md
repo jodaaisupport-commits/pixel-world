@@ -13,6 +13,7 @@ in Offscreen-Canvases gemalt und pixelgenau (Nearest-Neighbor, ganzzahlig ~3×) 
 | **Dunkelwald** | Dichter, düsterer Wald mit Glühpilzen, Glühwürmchen, Nebelmoor, toten Bäumen, altem Schrein und der Hütte der Kräuterfrau | Weg nach **Norden** |
 | **Graufels-Berge** | Felsiges Hochland mit Klippen (Höhenstufen), verschneiten Gipfeln, Bergsee, Schneefall, Zeltlager mit Lagerfeuer, Steinmännchen, Erzadern, Felsgruppen und dem Eingang zur alten Kristallmine | Weg nach **Osten** |
 | **Kristallhöhle** | Steinboden, Höhlenwände, leuchtende Kristalle, unterirdischer See, Stalagmiten, Schatztruhe – stark abgedunkelt, die Figur trägt ein kleines Licht | Mineneingang in den Bergen |
+| **Kristallschlund** *(neu)* | Tiefe Kristallkammer: Vorkammer mit Siegeltor, runde Bossarena mit Runenkreis und Kristallsäulen | Treppe im Weststollen der Kristallhöhle (erst nach der Sprengung) |
 | **Möwenbucht** | Strand mit Palmen, Brandung, Seesternen, Sandburg, Fischerhütte, Steg mit Boot, Leuchtturm auf Felsen, Möwen | Weg nach **Süden** |
 
 **Innenräume** – alle 4 Dorfhäuser sind begehbar (in die Tür laufen oder davor `E` drücken), jeweils handgestaltet
@@ -73,6 +74,10 @@ URL-Parameter (optional):
 | Esc | Dialog bzw. Fenster schließen |
 | M | Minimap ein/aus (zeigt NPCs, Gegner als rote und Truhen als gelbe Punkte) |
 | T | Tageszeit: Tag → Abend → Nacht |
+| P oder Esc | Optionen (Audio): Musik/Effekte an/aus, Lautstärken (Esc schließt zuerst offene Dialoge/Fenster) |
+| N | Musik an/aus |
+| B | Soundeffekte an/aus |
+| Esc (im Intro/Outro) | Zwischensequenz überspringen · `E` blättert weiter |
 | + / - | Zoom (2×–6×) |
 
 **In Fenstern (Inventar, Laden):** Pfeile/WASD wählen, `E`/Enter benutzt bzw. kauft, `Esc` (oder dieselbe Taste) schließt.
@@ -81,6 +86,59 @@ URL-Parameter (optional):
 Tastenkonflikte wurden bewusst vermieden: `E` ist nur Interaktion, `J` ist nur Angriff; die Leertaste
 greift nur dann an, wenn nichts Benutzbares vor einem steht. Solange ein Fenster oder Dialog offen ist,
 bewegt sich die Figur nicht und es wird nicht angegriffen. Der HUD-Hinweis unten zeigt, was `E` gerade tun würde.
+
+## Hauptquest „Der Kristallfluch“
+
+Ein neues Spiel beginnt mit einem **Intro** (5 Tafeln mit langsamen Kameraschwenks über echte Karten,
+Kinobalken, Schreibmaschinentext; `E` weiter, `Esc` überspringen). Danach rennt **Lina** auf den Dorfplatz
+und holt dich zu Oma Hilde. Die Geschichte verbindet alle Gebiete, NPCs und Nebenquests:
+
+| Kapitel | Titel | Ziele (im Questlog als orange „Hauptquest“-Karte, NPCs mit **S**-Marker) |
+|---|---|---|
+| 1 | Ein Schatten über Pixeldorf | Oma Hilde (Haus mit grünem Dach) erzählt vom Kristallherz · Schwert bei Bruno holen |
+| 2 | Der Nebel im Moor | Mira im Dunkelwald finden · ihre Kräuter-Quest lösen · den alten Schrein untersuchen |
+| 3 | Licht in der Tiefe | Bergmann Erwin · Grubenlampe (Kristall-Quest) · Sprengpulver · Geröll im Weststollen sprengen |
+| 4 | Die Klinge aus Sternenerz | Kristallklinge schmieden lassen (Bruno-Quest) · Siegeltor im Kristallschlund brechen |
+| 5 | Das Herz der Tiefe | Umbrakor besiegen |
+
+**Geskriptete Momente:** Lina läuft herbei · am Schrein: Rune flammt auf, Kamera schwenkt ins Moor,
+Bildschirmbeben + violetter Blitz, drei Schattenschleime steigen auf · Sprengung: Lunte, die Figur geht in
+Deckung, Explosion mit Trümmern · Siegeltor: die Kristallklinge zerschlägt das Siegel, Kamera schwenkt auf
+den schlafenden Boss · Boss-Intro: Gitter schlagen zu, Brüllen, Endgegner-Banner.
+
+**Fortschrittssperren:** Der Weststollen ist bis zur Sprengung verschüttet (Sprengpulver gibt Erwin erst,
+wenn man seine Grubenlampe hat), das Siegeltor öffnet nur die Kristallklinge, der Boss erwacht erst in Kapitel 5.
+Bis Umbrakor fällt, wabert violetter **Verderbnis-Nebel** über Dunkelwald, Höhle und Kristallschlund.
+
+**Ende:** Nach dem Sieg Outro (4 Tafeln), Abspann, dann **freies Spiel**: Nebel weg, der reine Kristall
+leuchtet in der Arena, alle NPCs haben neue Dialoge, der HUD zeigt den Titel „Held von Pixeldorf“.
+
+## Endgegner: Umbrakor, das verderbte Kristallherz
+
+Neue Karte **Kristallschlund** (`src/maps/tiefe.js`, erreichbar über die Treppe im gesprengten Weststollen
+der Kristallhöhle): Vorkammer mit Siegeltor, dahinter eine runde Arena mit Runenkreis und Kristallsäulen.
+Großes prozedurales Sprite (48×48, je Phase eigener Look, 2 Animationsframes, Auge folgt dem Spieler),
+Lebensleiste mit Name und Phasenmarken. 36 LP, Phasenwechsel bei ⅔ und ⅓:
+
+1. **Steinpanzer** – Kristallsalven (5er-Fächer nach kurzem Aufleuchten des Auges) und Sturmangriffe (rote Linie als Vorwarnung, danach betäubt = Trefferfenster)
+2. **Gebrochener Panzer** – Doppelsalven (7er-Fächer), zusätzlich Kristallstacheln aus dem Boden (rote Markierungen ~1 s vorher) und Schattenschleime aus Portalen
+3. **Nackter Kern** – Splitterspiralen und Splitterringe, Doppel-Sturmangriffe; Splitter lassen sich mit dem Schwert zerschlagen
+
+Trefferblitz, Phasenübergang mit Schockwelle, Trümmern, Beben und kurzer Unverwundbarkeit. Während des
+Kampfes ist das Tor vergittert; wer stirbt, beginnt **direkt vor der Arena** neu (Boss voll geheilt).
+Belohnung: Herzcontainer, 100 Taler, „Splitter des Kristallherzens“ und der Titel „Held von Pixeldorf“.
+
+## Audio (alles Web Audio, keine Dateien)
+
+- **Musik:** Chiptune-Sequenzer (Pulswellen mit 12,5/25/50 % Tastgrad, Dreieck-Bass, Rauschen-Drums,
+  Echo) mit eigenem, handgeschriebenem Stück je Gebietstyp: Dorf, Dorf bei Nacht, Wald, Berge, Höhle,
+  Strand, Innenräume/Taverne (Walzer), Boss, Ende. Weiches Überblenden beim Gebietswechsel.
+- **Effekte:** Schritte (je Untergrund: Gras, Erde, Sand, Stein, Schnee, Holz), Schwert, Treffer, Abprallen,
+  Gegner besiegt, Schaden, Taler/Item, Heilen, Truhe, Tür, Dialog-Blips (Tonhöhe je NPC), Menü/Auswahl,
+  Quest neu/abgeschlossen (Fanfare), Kapitel, Explosion, Lunte, Boss-Brüllen, Phasenwechsel, Stacheln, Sturm …
+- Ton startet nach dem ersten Tastendruck/Klick (Autoplay-Regeln). `N`/`B` oder das Optionsmenü (`P`)
+  schalten um; Einstellungen werden gespeichert (eigener `localStorage`-Schlüssel + im Spielstand).
+- Hörprobe: `screenshots/music-sample.wav` (Dorf-Thema, 20 s, offline per `OfflineAudioContext` gerendert).
 
 ## Items & Inventar
 
@@ -147,7 +205,8 @@ Oma Hilde heilt einen vollständig, Wirtin Greta gibt Tipps.
 Der Spielstand (Gebiet + Position, Inventar, Taler, Herzen, Ausrüstung, Questfortschritt, aufgesammelte
 Gegenstände, geöffnete Truhen) wird automatisch im `localStorage` gespeichert – bei jedem Gebietswechsel,
 bei Quest-/Truhen-Ereignissen und regelmäßig nach Änderungen. Beim nächsten Laden geht es dort weiter
-(„Spielstand geladen.“). **Neues Spiel:** `http://localhost:8080/?reset=1` (löscht den Spielstand).
+(„Spielstand geladen.“). Auch Kapitel, Story-Flags, Titel und Audio-Einstellungen werden gespeichert;
+während eines Bosskampfs wird der Punkt vor der Arena als Position gesichert. **Neues Spiel:** `http://localhost:8080/?reset=1` (löscht den Spielstand).
 
 ## Aufbau
 
@@ -179,6 +238,12 @@ src/tiles-extra.js     Truhen (offen/verschlossen), Zelt, Lagerfeuer, Baumstamm,
 src/collision.js       Gemeinsame Kollisions-Hitbox für Spieler und NPCs
 src/camera.js          Kamera folgt der Figur, an Kartenränder geklemmt (kleine Räume zentriert)
 src/noise.js           Seeded PRNG, Hash, Value-Noise
+src/story.js           Hauptquest: Kapitel + Ziele, Story-Dialoge je Kapitel, Intro/Outro-Tafeln, Abspann
+src/boss.js            Umbrakor: Sprite, Phasen, Angriffsmuster, Projektile/Stacheln/Portale
+src/audio.js           Audio-Engine: Sequenzer, Überblenden, Soundeffekte, Einstellungen, WAV-Export
+src/music.js           Die Musikstücke (Melodien, Akkorde, Bass-/Arpeggio-/Schlagzeugmuster)
+src/tiles-story.js     Geröll, Siegeltor, Arenagitter, Säulen, Runenkreis, reiner Kristall
+src/maps/tiefe.js      Kristallschlund mit Bossarena
 tools/verify.mjs       Headless-Test (Playwright), siehe unten
 screenshots/           Aufnahmen aus dem Headless-Test
 ```
@@ -209,8 +274,20 @@ Der Test startet immer mit `?reset=1`. Screenshots landen in `screenshots/` (u. 
 `inventory.png`, `questlog.png`, `quest-complete.png`, `shop.png`); für die Kampfbilder werden die Gegner
 per Test-Hook kurz eingefroren und nebeneinander gestellt.
 
+Seit Phase 4 zusätzlich (insgesamt 77 Prüfungen): Intro startet bei neuem Spiel und lässt sich durchblättern,
+Lina-Szene, Kapitel 1 → 5 über echte Dialoge und Interaktionen (Nebenquests teils per Debug abgekürzt),
+Questlog-Hauptquest, Schrein-Szene (Kameraschwenk, Schattenschleime), Sperren (Geröll, Siegeltor ohne
+Kristallklinge), Arena-Verriegelung + Bossmusik, echter Schwerttreffer am Boss, Phase 2 und 3, Tod im
+Bosskampf → Neustart vor der Arena, Sieg → Belohnung, Outro, Abspann, freies Spiel mit neuen Dialogen,
+Optionsmenü, N/B samt Persistenz nach Neuladen, AudioContext ohne Fehler, Musikwechsel je Gebiet und
+Rendern von `music-sample.wav`. Neue Screenshots: `story-intro*.png`, `story-lina.png`, `story-schrein.png`,
+`story-sprengung.png`, `story-siegel.png`, `boss-phase1/2/3.png`, `story-outro.png`, `ending.png`,
+`questlog-main.png`, `options.png`, `story-nachher-dunkelwald.png`.
+
+Debug-Hilfen: `?nointro=1` überspringt das Intro; `window.__game.setStory(kapitel, {flags})` springt in ein Kapitel.
+
 ## Ideen für nächste Schritte
 
-- Weitere Waffen/Werkzeuge (Bogen, Axt), Bosskampf in der Tiefe der Mine
-- Sound (WebAudio-Chiptune), Wetter, echter Tageszyklus mit NPC-Tagesablauf
+- Weitere Waffen/Werkzeuge (Bogen, Axt), weitere Bosse/Dungeons
+- Wetter, echter Tageszyklus mit NPC-Tagesablauf
 - Mehrere Speicherplätze, Touch-/Gamepad-Steuerung

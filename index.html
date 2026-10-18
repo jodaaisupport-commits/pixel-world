@@ -45,7 +45,7 @@
     .toast img { width: 27px; height: 27px; image-rendering: pixelated; }
     .toast.out { opacity: 0; transform: translateX(20px); }
     @keyframes tin { from { opacity: 0; transform: translateX(30px); } }
-    #banner { top: 27%; left: 50%; transform: translate(-50%, -50%) scale(0.9); opacity: 0; transition: opacity 0.35s, transform 0.35s; text-align: center; padding: 14px 34px 12px; border-color: #ffe14d; }
+    #banner { top: 38%; left: 50%; transform: translate(-50%, -50%) scale(0.9); opacity: 0; transition: opacity 0.35s, transform 0.35s; text-align: center; padding: 14px 34px 12px; border-color: #ffe14d; }
     #banner.show { opacity: 1; transform: translate(-50%, -50%) scale(1); }
     #banner small { display: block; font-size: 12px; color: #ffe14d; letter-spacing: 3px; text-transform: uppercase; }
     #banner .b-title { font-size: 24px; margin: 4px 0; }
@@ -88,12 +88,54 @@
     #dialog .dlg-choices { margin-top: 8px; color: #cfc2a8; } #dialog .dlg-choices .sel { color: #ffe14d; }
     #death { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; pointer-events: none; color: #ff6a6a; font: bold 34px ui-monospace, monospace; text-shadow: 3px 3px 0 #20161a; opacity: 0; transition: opacity 0.4s; letter-spacing: 3px; }
     #death.show { opacity: 1; }
+    #hud-title { color: #ffb84a; font-size: 12px; }
+    .ql-body { max-height: 66vh; overflow-y: auto; }
+    .quest.main { border-color: #ffb84a; background: linear-gradient(#3a2618, #2a1e22); box-shadow: inset 0 0 0 1px #6a4420; }
+    .quest.main .q-title { color: #ffd27a; font-size: 16px; }
+    .q-kicker { color: #ffb84a; font-size: 10px; letter-spacing: 2px; text-transform: uppercase; }
+    #banner.chapter { border-color: #ffb84a; } #banner.chapter small { color: #ffb84a; } #banner.chapter .b-title { color: #ffd27a; }
+    #banner.boss { border-color: #ff4a7a; top: 70%; } #banner.boss small { color: #ff8aa8; }
+    .opt-row { display: flex; justify-content: space-between; padding: 7px 10px; border: 2px solid transparent; font-size: 14px; }
+    .opt-row.sel { border-color: #ffe14d; background: #3a2a30; color: #ffe14d; }
+    .opt-row b { color: #9fe08a; letter-spacing: 1px; } .opt-row b.off { color: #e07a7a; }
+    .opt-now { margin-top: 10px; color: #cfc2a8; font-size: 12px; } .opt-now b { color: #ffe14d; } .opt-now i { color: #8f826c; font-style: normal; }
+    .opt-keys { margin-top: 6px; color: #8f826c; font-size: 11px; } .opt-keys b { color: #ffe14d; }
+    #bossbar { top: 16px; left: 50%; transform: translateX(-50%); width: 460px; max-width: 70vw; text-align: center; padding: 6px 14px 8px; border-color: #ff4a7a; }
+    #bossbar .bb-name { color: #ffd0dc; font-size: 16px; letter-spacing: 3px; text-transform: uppercase; }
+    #bossbar .bb-name small { display: block; color: #c07090; font-size: 10px; letter-spacing: 2px; }
+    #bossbar .bb-bar { position: relative; height: 12px; margin-top: 5px; background: #20101a; border: 2px solid #f7eedc; box-shadow: 0 0 0 2px #20161a; }
+    #bossbar .bb-fill, #bossbar .bb-ghost { position: absolute; left: 0; top: 0; bottom: 0; }
+    #bossbar .bb-ghost { background: #f7eedc; } #bossbar .bb-fill { background: linear-gradient(#ff7aa0, #c0204a); transition: width 0.1s; }
+    #bossbar.p3 .bb-fill { background: linear-gradient(#ff9a5a, #d0301a); }
+    #bossbar i { position: absolute; top: -2px; bottom: -2px; width: 2px; background: #20161a; }
+    #bossbar .bb-phase { color: #c0a8b0; font-size: 11px; margin-top: 3px; }
+    body.letterbox::before, body.letterbox::after, body.cinema::before, body.cinema::after { content: ''; position: fixed; left: 0; right: 0; height: 9vh; background: #000; z-index: 5; pointer-events: none; }
+    body.letterbox::before, body.cinema::before { top: 0; } body.letterbox::after, body.cinema::after { bottom: 0; }
+    body.cinema #hud, body.cinema #help, body.cinema #prompt, body.cinema #minimap, body.cinema #toasts, body.cinema #bossbar,
+    body.letterbox #help, body.letterbox #prompt, body.letterbox #minimap { display: none; }
+    #cine { position: fixed; inset: 0; z-index: 6; pointer-events: none; }
+    #cine .cine-title { position: absolute; top: 32%; left: 50%; transform: translate(-50%, -50%); text-align: center; color: #ffe14d; font: bold 64px/1 ui-monospace, "DejaVu Sans Mono", monospace; letter-spacing: 6px; text-shadow: 4px 4px 0 #20161a, -2px -2px 0 #20161a; animation: cfade 1.2s; }
+    #cine .cine-title small { display: block; margin-top: 12px; font-size: 22px; letter-spacing: 8px; color: #d9b8ff; text-transform: uppercase; }
+    #cine .cine-text { position: absolute; bottom: calc(9vh + 18px); left: 50%; transform: translateX(-50%); width: 72%; max-width: 760px; min-height: 48px; font-size: 16px; padding: 14px 20px; pointer-events: none; }
+    #cine .cine-hint { position: absolute; bottom: 2.6vh; right: 24px; color: #8f826c; font: bold 12px ui-monospace, monospace; z-index: 7; }
+    @keyframes cfade { from { opacity: 0; } }
+    #credits { position: fixed; inset: 0; z-index: 8; background: radial-gradient(ellipse at 50% 40%, #1c1430 0%, #08060e 75%); overflow: hidden; color: #f7eedc; font: bold 16px/1.5 ui-monospace, "DejaVu Sans Mono", monospace; text-align: center; }
+    #credits .cr-roll { position: absolute; left: 0; right: 0; top: 100%; }
+    #credits .cr-roll.run { animation: roll 22s linear forwards; }
+    @keyframes roll { to { transform: translateY(calc(-100% - 45vh)); } }
+    #credits .cr-h { font-size: 54px; color: #ffe14d; letter-spacing: 6px; text-shadow: 4px 4px 0 #20161a; }
+    #credits .cr-s { font-size: 20px; color: #d9b8ff; letter-spacing: 6px; text-transform: uppercase; }
+    #credits .cr-t { color: #cfc2a8; } #credits .cr-k { color: #ffb84a; font-size: 12px; letter-spacing: 3px; text-transform: uppercase; margin-top: 6px; }
+    #credits .cr-n { color: #f7eedc; } #credits .cr-h2 { font-size: 30px; color: #9fe08a; margin-top: 30px; } #credits .cr-gap { height: 26px; }
+    #credits .cr-end { position: absolute; bottom: 3vh; right: 3vw; z-index: 2; color: #cfc2a8; font-size: 12px; background: rgba(8,6,14,0.85); border: 2px solid #3a2c52; padding: 6px 12px; }
+    #credits .cr-stars { position: absolute; inset: 0; background-image: radial-gradient(1px 1px at 10% 20%, #fff, transparent), radial-gradient(1px 1px at 70% 30%, #fff, transparent), radial-gradient(2px 2px at 40% 70%, #d9b8ff, transparent), radial-gradient(1px 1px at 85% 80%, #fff, transparent), radial-gradient(1px 1px at 25% 85%, #bfeaff, transparent), radial-gradient(2px 2px at 55% 15%, #ffe14d, transparent); opacity: 0.7; }
+
   </style>
 </head>
 <body>
   <canvas id="game"></canvas>
-  <div id="hud" class="panel"><div id="hud-stats"><canvas id="hearts" width="84" height="24"></canvas><div id="purse"><img id="coin-icon" alt=""><span id="coins">0</span></div></div><div id="hud-place">…</div><div id="hud-coords"></div></div>
-  <div id="help" class="panel"><b>WASD/Pfeile</b> laufen · <b>Shift</b> rennen · <b>E</b> sprechen/benutzen · <b>J/Leertaste</b> Schwert · <b>I</b> Inventar · <b>Q</b> Quests · <b>M</b> Karte · <b>T</b> Tageszeit</div>
+  <div id="hud" class="panel"><div id="hud-stats"><canvas id="hearts" width="84" height="24"></canvas><div id="purse"><img id="coin-icon" alt=""><span id="coins">0</span></div></div><div id="hud-place">…</div><div id="hud-coords"></div><div id="hud-title" class="hidden"></div></div>
+  <div id="help" class="panel"><b>WASD/Pfeile</b> laufen · <b>Shift</b> rennen · <b>E</b> sprechen/benutzen · <b>J/Leertaste</b> Schwert · <b>I</b> Inventar · <b>Q</b> Quests · <b>M</b> Karte · <b>T</b> Tageszeit · <b>P</b> Optionen · <b>N</b>/<b>B</b> Musik/Effekte</div>
   <div id="minimap" class="panel hidden"><canvas id="minimap-canvas"></canvas></div>
   <div id="prompt" class="panel hidden"><b>E</b> – ansehen</div>
   <div id="dialog" class="panel hidden"><div class="dlg-name"></div><div class="dlg-text"></div><div class="dlg-choices hidden"></div><div class="dlg-more"></div></div>
@@ -104,6 +146,10 @@
   <div id="inv" class="panel window hidden"><h2>Inventar</h2><div class="inv-body"></div><div class="hint">Pfeile/WASD wählen · E benutzen · I/Tab/Esc schließen</div></div>
   <div id="questlog" class="panel window hidden"><h2>Questlog</h2><div class="ql-body"></div><div class="hint">Q/Esc schließen</div></div>
   <div id="shop" class="panel window hidden"><h2>Antons Krämerladen</h2><div class="shop-body"></div><div class="hint">↑↓ wählen · E kaufen · Esc schließen</div></div>
+  <div id="options" class="panel window hidden"><h2>Optionen · Audio</h2><div class="opt-body"></div><div class="hint">↑↓ wählen · ←→ ändern · E umschalten · P/Esc schließen</div></div>
+  <div id="bossbar" class="panel hidden"></div>
+  <div id="cine" class="hidden"><div class="cine-title"></div><div class="cine-text panel"></div><div class="cine-hint"></div></div>
+  <div id="credits" class="hidden"><div class="cr-stars"></div><div class="cr-roll"></div><div class="cr-end">E – weiter ins freie Spiel</div></div>
   <script type="module" src="src/main.js"></script>
 </body>
 </html>
