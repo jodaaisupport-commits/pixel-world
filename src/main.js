@@ -796,7 +796,7 @@ function checkExits() {
   }
   if (!inside) { state.armed = true; return; }
   if (inside.need && !game.story.flags[inside.need]) {
-    if (performance.now() - (state.needToast || 0) > 2500) { state.needToast = performance.now(); ui.toast(inside.needText || 'Hier geht es nicht weiter.'); audio.sfx('bonk', {}, 0.3); }
+    if (performance.now() - (state.needToast ?? -1e9) > 2500) { state.needToast = performance.now(); ui.toast(inside.needText || 'Hier geht es nicht weiter.'); audio.sfx('bonk', {}, 0.3); }
     player.x += inside.dir === 'left' ? 6 : inside.dir === 'right' ? -6 : 0; player.y += inside.dir === 'up' ? 6 : inside.dir === 'down' ? -6 : 0;
     return;
   }
