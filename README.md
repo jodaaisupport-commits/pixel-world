@@ -89,10 +89,10 @@ URL-Parameter (optional):
 | N | Musik an/aus |
 | B | Soundeffekte an/aus |
 | Esc (im Intro/Outro) | Zwischensequenz überspringen · `E` blättert weiter |
+| + / - | Zoom (2×–6×) |
 
 Neu in Phase 5: keine zusätzlichen Tasten – Stiefel und Steigeisen wirken automatisch, sobald man sie besitzt,
 der Enterhaken wird wie alles andere mit `E` benutzt.
-| + / - | Zoom (2×–6×) |
 
 **In Fenstern (Inventar, Laden):** Pfeile/WASD wählen, `E`/Enter benutzt bzw. kauft, `Esc` (oder dieselbe Taste) schließt.
 **Dialoge mit Auswahl** (z. B. „Quest annehmen?“): Pfeil hoch/runter (W/S) wählt *Ja*/*Nein*, `E` bestätigt.
@@ -100,6 +100,40 @@ der Enterhaken wird wie alles andere mit `E` benutzt.
 Tastenkonflikte wurden bewusst vermieden: `E` ist nur Interaktion, `J` ist nur Angriff; die Leertaste
 greift nur dann an, wenn nichts Benutzbares vor einem steht. Solange ein Fenster oder Dialog offen ist,
 bewegt sich die Figur nicht und es wird nicht angegriffen. Der HUD-Hinweis unten zeigt, was `E` gerade tun würde.
+
+## Handy & Tablet (Touch-Steuerung, Phase 6)
+
+Auf Touch-Geräten erscheinen die Bildschirm-Steuerelemente automatisch, am Desktop bleiben sie verborgen.
+Im Optionsmenü (`P` bzw. ⏸) schaltet **Touch-Steuerung** zwischen *Automatisch*, *An* und *Aus* um
+(gespeichert in `localStorage` unter `pixelworld.touch`). Alle Knöpfe lösen intern dieselben Tasten aus wie die
+Tastatur – Tastaturspiel und Spielstände bleiben unverändert.
+
+| Touch | entspricht | Aktion |
+|---|---|---|
+| Joystick links unten (erscheint unter dem Daumen) | WASD | Laufen, 8 Richtungen mit Totzone · weit gedrückt = **rennen** |
+| **A** (grün, rechts unten) | E | Ansprechen, Tür, Truhe, Enterhaken, Dialog weiter |
+| **B** (rot) | J | Schwertschlag |
+| Rucksack | I | Inventar |
+| Schriftrolle | Q | Questlog |
+| Karte | M | Minimap ein/aus |
+| Blitz | Shift | Rennen dauerhaft an/aus |
+| ⏸ oben rechts | P | Optionen/Pause |
+| ⛶ oben rechts | – | Vollbild (nur wo der Browser es unterstützt) |
+
+- **Multi-Touch:** Mit dem Daumen laufen und gleichzeitig mit dem anderen A/B drücken.
+- **Dialoge:** Irgendwo antippen = weiter; Antworten (Ja/Nein) direkt antippen.
+- **Fenster** (Inventar, Laden, Questlog, Optionen) haben ein ✕ zum Schließen. Einen Platz antippen wählt ihn aus,
+  nochmal antippen benutzt bzw. kauft. Bei den Lautstärke-Reglern macht die linke Hälfte leiser, die rechte lauter.
+  Während ein Fenster offen ist, weichen Joystick und Knöpfe aus.
+- **Intro, Zwischensequenzen und Abspann:** antippen zum Weiterblättern.
+- **Layout:** Das Bild füllt den Schirm im Quer- und Hochformat und hält die Safe-Area-Ränder (Notch) frei.
+  Der Zoom passt sich automatisch an die Bildschirmgröße an (mit `+`/`-` weiterhin manuell änderbar).
+  Kein Scrollen, kein Zoomen per Geste, kein Pull-to-Refresh, kein Long-Press-Menü und keine Textauswahl.
+  Im Hochformat erscheint ein dezenter Hinweis „Gerät quer halten“ (antippen zum Ausblenden, verschwindet sonst nach ein paar Sekunden).
+- **Audio** wird beim ersten Antippen entsperrt (nötig für iOS Safari).
+- **Leistung:** Die Pixeldichte ist auf 2× begrenzt, das Touch-Eingabeobjekt wird wiederverwendet (keine Allokationen pro Frame).
+- **Zum Startbildschirm hinzufügen:** `manifest.webmanifest` (Vollbild, Querformat), App-Icons in `icons/`
+  (prozedural erzeugt mit `node tools/make-icons.mjs`), `apple-mobile-web-app-*`-Tags für iOS.
 
 ## Hauptquest „Der Kristallfluch“
 
@@ -340,6 +374,10 @@ src/story2.js          Zweite Geschichte: Kapitel + Ziele, Story-Dialoge, Marker
 src/arc2.js            Laufzeit der zweiten Geschichte: Auslöser, Szenen, Durchquerung, Altäre, Boot, Boss-Konfiguration
 src/miniboss.js        Khepran: Sprite, Zustände (Sturm, Eingraben, Ausbruch, Betäubung), Sandgeschosse
 src/boss2.js           Thalassa: Sprite, Becken-Wechsel, Wasserkugeln (reflektierbar), Flut, Tentakel, Mahlstrom
+src/touch.js           Touch-Steuerung: Joystick, A/B und kleine Knöpfe (prozedurale Pixel-Knöpfe), Multi-Touch, Modus-Schalter
+tools/verify-mobile.mjs Mobil-Prüfungen mit Geräte-Emulation (von verify.mjs aufgerufen, auch eigenständig)
+tools/make-icons.mjs   Erzeugt die PNG-App-Icons (icons/) ohne Abhängigkeiten
+manifest.webmanifest   Web-App-Manifest (Startbildschirm, Vollbild)
 tools/verify-arc2.mjs  Prüfungen der zweiten Geschichte (von verify.mjs aufgerufen, auch eigenständig lauffähig)
 tools/verify.mjs       Headless-Test (Playwright), siehe unten
 screenshots/           Aufnahmen aus dem Headless-Test
@@ -391,6 +429,19 @@ Betäubung, echter Treffer, Phase 2, Sieg), Eiswächter-Welle, Thalassa (Schwert
 betäubt, Phasen 2 und 3, Tod → Neustart, Sieg; Schaden in den Phasen per Debug abgekürzt), Outro, Abspann,
 Speichern/Laden. Screenshots: `area-wueste/oase/ruinen/frost/eisgrotte/tempel.png`, `story2-*.png`,
 `miniboss.png`, `boss2-phase1/2/3.png`, `shop-nuri.png`.
+
+Seit Phase 6 zusätzlich (`tools/verify-mobile.mjs`, Chrome-Geräte-Emulation mit Touch: *Pixel 7* quer,
+*iPhone 13* hoch): Touch-Steuerung erscheint automatisch und die Tastaturhilfe nicht, kein Scrollen, Bild füllt
+den Schirm; Joystick-Wischen (echte Touch-Ereignisse über CDP) bewegt die Figur und Loslassen stoppt sie;
+weit drücken rennt; Multi-Touch (laufen + B); A spricht Lina an, Antippen blättert und schließt den Dialog;
+Ja/Nein per Antippen; Inventar per Knopf öffnen, Platz antippen, Trank benutzen, ✕ schließen; Questlog und
+Optionen (mit Touch-Schalter) per Antippen; Karten-Knopf; Hochformat mit Quer-Hinweis und Joystick;
+Bildrate; Konsole fehlerfrei. Am Desktop wird geprüft, dass keine Touch-Steuerung erscheint und Manifest und
+Icons erreichbar sind. Screenshots: `mobile-landscape.png`, `mobile-portrait.png`, `mobile-dialog.png`,
+`mobile-inventory.png`. Nur die Mobil-Prüfungen: `node tools/verify-mobile.mjs`.
+
+Auf dem Handy testen: Rechner und Handy im selben WLAN, Server starten und `http://<IP-des-Rechners>:8080/`
+öffnen. Die Touch-Steuerung lässt sich am Desktop im Optionsmenü auf *An* stellen (Bedienung dann per Maus).
 
 Debug-Hilfen: `?nointro=1` überspringt das Intro; `window.__game.setStory(kapitel, {flags})` springt in ein Kapitel,
 `window.__game.setStory2(kapitel, {flags})` in eines der zweiten Geschichte.

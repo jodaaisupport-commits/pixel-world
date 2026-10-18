@@ -645,8 +645,8 @@ await page.waitForFunction(() => window.__game && window.__game.ready, null, { t
 const fresh = await G(() => ({ coins: window.__game.game.coins, weapon: window.__game.game.weapon, url: location.search }));
 check('?reset=1 startet ein neues Spiel', fresh.coins === 10 && !fresh.weapon, fresh);
 
-const desk = await G(() => ({ touch: document.body.classList.contains('touch'), hidden: document.getElementById('touch').classList.contains('hidden'), help: getComputedStyle(document.getElementById('help')).display }));
-check('Desktop: keine Touch-Steuerung eingeblendet, Tastaturhilfe sichtbar', !desk.touch && desk.hidden && desk.help !== 'none', desk);
+const desk = await G(() => ({ touch: document.body.classList.contains('touch'), hidden: document.getElementById('touch').classList.contains('hidden'), a: getComputedStyle(document.querySelector('#touch .t-a')).display !== 'none' && document.querySelector('#touch .t-a').getBoundingClientRect().width > 0 }));
+check('Desktop: keine Touch-Steuerung eingeblendet', !desk.touch && desk.hidden && !desk.a, desk);
 const man = await G(() => fetch('manifest.webmanifest').then((r) => r.json()).then(async (m) => ({ name: m.name, icons: await Promise.all(m.icons.map((i) => fetch(i.src).then((r) => r.ok))) })));
 check('Web-App-Manifest und Icons erreichbar', man.name === 'Pixel World' && man.icons.every(Boolean), man);
 
