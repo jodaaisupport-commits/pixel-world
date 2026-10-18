@@ -146,8 +146,8 @@ export function eisgrotte() {
   m.exit(14, H - 1, 2, 1, 'frost', ICECAVE_DOOR.x + 0.5, ICECAVE_DOOR.y + 1.5, 'down', 'door');
   m.decal('stairs_up', 14 * TS, (H - 2) * TS);
   m.spawn = { x: 15 * TS, y: 31 * TS + 12 };
-  m.place('frostaltar', 14, 3, 2, 1, 0, { hideIf: 'a2_frost' });
-  m.place('frostaltar_empty', 14, 3, 2, 1, 0, { showIf: 'a2_frost' });
+  m.place('frostaltar', 14, 3, 2, 1, 0, { hideIf: 'a2_frost_taken' });
+  m.place('frostaltar_empty', 14, 3, 2, 1, 0, { showIf: 'a2_frost_taken' });
   m.interact.push({ x: 14.5, y: 3, id: 'frostaltar', text: 'Ein Altar aus Eis.' });
   m.light(15 * TS, 3 * TS, 80, 'rgba(150,230,255,0.6)', 0.3);
   for (const [x, y, v] of [[6, 10, 0], [23, 9, 1], [9, 20, 1], [21, 21, 0], [12, 14, 0], [18, 15, 1], [5, 16, 1], [25, 16, 0]]) if (m.get(x, y) !== T.CAVEWALL) {

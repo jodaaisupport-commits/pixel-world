@@ -207,7 +207,7 @@ function oase_laden() {
 
 // ============================================================ Sonnentempel (Ruinen, Mini-Boss)
 export const KH_ARENA = { cx: 17 * TS, cy: 9 * TS + 8, rx: 12 * TS, ry: 6.6 * TS };
-export const KH_RESPAWN = [16.5, 25];
+export const KH_RESPAWN = [17.5, 19];
 export const KH_PILLARS = [[10, 6], [24, 6], [10, 12], [24, 12]];
 export const RUIN_HOOKS = [{ a: [16, 24], b: [16, 18] }];
 export function ruinen() {
@@ -255,6 +255,7 @@ export function ruinen() {
   // Sandtor der Arena + Pfeiler
   m.place('ruinpillar0', 13, 16, 1, 1); m.place('ruinpillar0', 20, 16, 1, 1);
   m.place('sandgate', 14, 16, 4, 1, 0, { showIf: 'a2_kh_lock' });
+  m.place('sandgate', 16, 16, 4, 1, 0, { showIf: 'a2_kh_lock' });
   for (const [x, y] of KH_PILLARS) m.place('ruinpillar0', x, y, 1, 1);
   m.place('sunaltar', 16, 2, 2, 1, 0, { showIf: 'a2_khepran', hideIf: 'a2_sun' });
   m.place('sunaltar_empty', 16, 2, 2, 1, 0, { showIf: 'a2_sun' });

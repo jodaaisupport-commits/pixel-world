@@ -44,6 +44,7 @@ export function tempel() {
   // Gezeitengitter vor der Arena
   m.place('tpillar1', 14, 20, 1, 1); m.place('tpillar0', 21, 20, 1, 1);
   m.place('tidebars', 15, 20, 4, 1, 0, { showIf: 'a2_th_lock' });
+  m.place('tidebars', 17, 20, 4, 1, 0, { showIf: 'a2_th_lock' });
   // Säulen, Kohlebecken, Korallen, Seetang
   for (const [x, y, v] of [[6, 4, 0], [30, 4, 1], [4, 11, 1], [32, 11, 0], [6, 18, 1], [30, 18, 0]]) if (m.get(x, y) === T.TEMPLE) m.place('tpillar' + v, x, y);
   for (const [x, y] of [[14, 24], [22, 24], [11, 30], [24, 30], [15, 38], [21, 38], [8, 22], [28, 22]]) if (m.get(x, y) === T.TEMPLE) {

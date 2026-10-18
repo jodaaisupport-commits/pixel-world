@@ -279,6 +279,7 @@ export function kueste() {
   m.decal('boat', 47 * TS + 2, (sy + 3) * TS + 2);
   m.interact.push({ x: 46, y: sy + 4, id: 'boot', text: 'Jans altes Ruderboot. Ein Leck, so groß wie eine Faust. Heute fährt hier niemand raus.' });
   m.dock = { x: 46, y: sy + 4 };
+  m.npcs.push({ id: 'jan', x: 45, y: sy + 5, mode: 'stand', dir: 'down', showIf: 'a2_jan_coast' });
   // Strandhütte, Sandburg, Palmen, Felsen, Seesterne
   const hy = Math.round(shore(22)) - 6;
   m.place('hut', 21, hy, 3, 3, 1);

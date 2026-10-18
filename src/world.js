@@ -304,7 +304,7 @@ export function generateWorld(seed = DEFAULT_SEED) {
   for (const x of [7, 8, 12, 13]) place('bush' + (x % 2), x, 25);
   place('sign', 13, 28);
   interact.push({ x: 13, y: 28, text: '← Alter Karawanenweg zur Sonnenwüste. Gesperrt seit dem großen Sandsturm. (gez. Dorfrat)' });
-  exits.push({ x: 0, y: 22, w: 1, h: 2, to: 'wueste', tx: 78, ty: 28.5, dir: 'left', kind: 'edge' });
+  exits.push({ x: 0, y: 22, w: 1, h: 2, to: 'wueste', tx: 78, ty: 28.5, dir: 'left', kind: 'edge', need: 'a2_west', needText: 'Der alte Karawanenweg ist verschüttet. Weiter westlich geht es nicht – noch nicht.' });
   place('sign', 19, 36);
   interact.push({ x: 19, y: 36, text: 'Zum Steg am Spiegelsee. Angeln verboten! (Noch.)' });
 
@@ -382,7 +382,8 @@ export function generateWorld(seed = DEFAULT_SEED) {
 
   const npcs = [
     { id: 'lina', x: 56, y: 31, mode: 'wander', home: [52, 29, 63, 34] },
-    { id: 'jan', x: 18, y: 48, mode: 'stand', dir: 'down' },
+    { id: 'jan', x: 18, y: 48, mode: 'stand', dir: 'down', hideIf: 'a2_jan_coast' },
+    { id: 'selma', x: 12, y: 30, mode: 'stand', dir: 'right', showIf: 'a2_selma_here', hideIf: 'a2_selma_gone' },
   ];
   // Fischer steht am Ende des Stegs
   for (let y = H - 1; y > 36; y--) if (ground[idx(18, y)] === T.BRIDGE) { npcs[1].y = y - 1; break; }

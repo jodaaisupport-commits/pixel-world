@@ -10,6 +10,7 @@ const WALK_CYCLE = [1, 0, 2, 0];
 export class NPC {
   constructor(spec, def, frames) {
     this.id = spec.id;
+    this.spec = spec;
     this.name = def.name;
     this.def = def;
     this.frames = frames;

@@ -20,6 +20,8 @@ import { CHAPTERS, INTRO, OUTRO, CREDITS, MAIN_TITLE, storyTalk, storyMarker } f
 import { buildStoryArt } from './tiles-story.js';
 import { buildArc2Art } from './tiles-arc2.js';
 import { ARENA, ARENA_RESPAWN } from './maps/tiefe.js';
+import { createArc2 } from './arc2.js';
+import { T } from './map.js';
 import { makeValueNoise, fbm } from './noise.js';
 
 const $ = (id) => document.getElementById(id);
@@ -50,8 +52,10 @@ const saved = loadGame();
 /** Spielstand: Herzen (in halben Herzen), Taler, Inventar, Ausrüstung, Quests, Welt-Flags. */
 const game = newGameState();
 if (saved) {
-  for (const k of ['hp', 'maxHp', 'coins', 'inv', 'weapon', 'lamp', 'quests', 'taken', 'opened', 'story', 'title']) if (saved[k] !== undefined && saved[k] !== null) game[k] = saved[k];
+  for (const k of ['hp', 'maxHp', 'coins', 'inv', 'weapon', 'lamp', 'boots', 'hook', 'grip', 'quests', 'taken', 'opened', 'story', 'title']) if (saved[k] !== undefined && saved[k] !== null) game[k] = saved[k];
   if (!game.story || typeof game.story.ch !== 'number') game.story = { ch: 1, flags: {} }; // alter Spielstand ohne Geschichte
+  if (typeof game.story.ch2 !== 'number') game.story.ch2 = 0; // Spielstand vor der zweiten Geschichte
+  game.story.flags ||= {};
   for (const v of saved.visited || []) state.visited.add(v);
   state.tint = saved.tint || 0;
   if (game.hp <= 0) game.hp = game.maxHp;
@@ -80,7 +84,7 @@ function buildScene(id) {
     if (o.sprite.startsWith('house')) for (const dx of [20, 62]) nightLights.push({ x: o.x + dx, y: o.y + 54, r: 26, color: 'rgba(255,190,100,0.5)', flicker: 0.2 });
     if (o.sprite === 'lighthouse') nightLights.push({ x: o.x + 16, y: o.y + 12, r: 90, color: 'rgba(255,230,140,0.55)', flicker: 0.1 });
   }
-  const scene = { id, map, ground, objects, npcs, nightLights, mini: buildMinimap(map), particles: [], enemies: [], drops: [], fx: [] };
+  const scene = { id, map, ground, objects, npcs, allNpcs: npcs, nightLights, mini: buildMinimap(map), particles: [], enemies: [], drops: [], fx: [], eshots: [] };
   map.pickups = map.pickups || []; map.chests = map.chests || []; map.enemies = map.enemies || [];
   console.log(`[pixel-world] Szene ${id} (${map.W}x${map.H}) in ${(performance.now() - t0).toFixed(0)}ms`);
   return scene;
@@ -117,6 +121,8 @@ const G = {
         if (id === 'moorkraut' && game.quests.kraeuter === 'active') extra = ` (${Math.min(5, count(id))}/5)`;
         if (id === 'kristall' && game.quests.kristalle === 'active') extra = ` (${Math.min(3, count(id))}/3)`;
         if (id === 'eisenerz' && game.quests.klinge === 'active') extra = ` (${Math.min(3, count(id))}/3)`;
+        if (id === 'wuestenrose' && game.quests.wuestenrosen === 'active') extra = ` (${Math.min(4, count(id))}/4)`;
+        if (id === 'eiskristall' && game.quests.steigeisen === 'active') extra = ` (${Math.min(3, count(id))}/3)`;
         ui.toast(`+${n > 1 ? n + ' ' : ''}${d.name}${extra}`, id);
       }
     }
@@ -129,6 +135,7 @@ const G = {
   equip(id) {
     const d = ITEMS[id];
     if (d.slot === 'weapon') game.weapon = id; else if (d.slot === 'lamp') game.lamp = true;
+    else if (TOOL_FLAG[d.slot]) game[TOOL_FLAG[d.slot]] = true;
     applyEquipment();
     ui.toast(`Erhalten: ${d.name}`, id);
     G.markDirty();
@@ -158,15 +165,29 @@ const G = {
   buy(id) {
     const d = ITEMS[id];
     if (game.coins < d.price) { ui.toast('Nicht genug Taler!'); return; }
+    if (d.type === 'equip' && game[TOOL_FLAG[d.slot]]) { ui.toast('Das hast du schon.'); return; }
     game.coins -= d.price;
-    game.inv[id] = count(id) + 1;
     audio.sfx('buy');
+    if (d.type === 'equip') { G.equip(id); ui.toast(`Gekauft: ${d.name} (−${d.price} Taler)`, id); G.markDirty(); return; }
+    game.inv[id] = count(id) + 1;
     ui.toast(`Gekauft: ${d.name} (−${d.price} Taler)`, id);
     G.markDirty();
   },
   openShop() { stopInput(); ui.toggle('shop'); },
+  /** Sortiment hängt vom Laden ab (Antons Krämerladen im Dorf, Nuris Basar in der Oase). */
+  shopList() {
+    if (state.scene.id !== 'oase_laden') return ['apfel', 'heiltrank', 'grosstrank'];
+    const l = ['dattel', 'heiltrank', 'grosstrank'];
+    if (!game.boots) l.push('sandlaeufer');
+    if ((game.story.ch2 || 0) >= 4 && !G.has('schiffsteer') && !game.story.flags.a2_boat) l.push('schiffsteer');
+    return l;
+  },
+  shopTitle: () => (state.scene.id === 'oase_laden' ? 'Nuris Basar' : 'Antons Krämerladen'),
+  rest: () => arc2.rest(),
+  visited: (id) => state.visited.has(id),
   markDirty() { state.dirty = true; },
 };
+const TOOL_FLAG = { boots: 'boots', hook: 'hook', grip: 'grip' };
 const ui = new UI(itemArt, G);
 Object.defineProperty(player, 'hp', { get: () => game.hp });
 state.lastSave = 0;
@@ -174,7 +195,8 @@ function saveNow() {
   if (!state.scene) return;
   if (state.cineMode) return;
   let map = state.scene.id, x = player.x, y = player.y;
-  if (map === 'tiefe' && state.fight) { x = ARENA_RESPAWN[0] * TS + 8; y = ARENA_RESPAWN[1] * TS + 12; }
+  const bc = BOSSES[map];
+  if (bc && state.fight) { x = bc.respawn[0] * TS + 8; y = bc.respawn[1] * TS + 12; }
   saveGame(game, { map, x, y, dir: player.dir, visited: state.visited, tint: state.tint, settings: audio.settings });
   state.dirty = false; state.lastSave = performance.now();
 }
@@ -220,7 +242,9 @@ function updateCombat(sc, dt) {
       for (const e of sc.enemies) {
         if (player.atk.hit.has(e.uid) || !overlap(box, e.box)) continue;
         player.atk.hit.add(e.uid);
-        if (e.hurt(weapon.dmg, player.x, player.y - 6)) {
+        const r = e.hurt(weapon.dmg, player.x, player.y - 6);
+        if (r === 'block') { addFx({ type: 'spark', x: e.x, y: e.y - 8 - (e.alt || 0), t: 0, dur: 0.15 }); audio.sfx('clink', {}, 0.05); }
+        else if (r) {
           addFx({ type: 'spark', x: e.x, y: e.y - 8 - (e.alt || 0), t: 0, dur: 0.22 });
           state.shake = 0.08;
           audio.sfx('hit', {}, 0.04);
@@ -238,7 +262,10 @@ function updateCombat(sc, dt) {
   for (const e of sc.enemies) {
     e.update(dt, sc.map, player);
     if (!e.dead && player.inv <= 0 && player.kbt <= 0 && e.touches(player)) hurtPlayer(e.def.dmg, e);
+    if (e.sfx) { audio.sfx(e.sfx, {}, 0.08); e.sfx = null; }
+    if (e.out && e.out.length) { sc.eshots.push(...e.out); e.out.length = 0; }
   }
+  updateShots(sc, dt);
   // Besiegte Gegner: Rauchwolke + Beute
   for (const e of sc.enemies.filter((k) => k.dead)) {
     addFx({ type: 'poof', x: e.x, y: e.y - 6 - (e.alt || 0), t: 0, dur: 0.45 });
@@ -250,6 +277,28 @@ function updateCombat(sc, dt) {
     }
   }
   sc.enemies = sc.enemies.filter((k) => !k.dead);
+}
+/** Gegnergeschosse (Eissplitter): prallen an Wänden ab, das Schwert zerschlägt sie. */
+function updateShots(sc, dt) {
+  if (!sc.eshots.length) return;
+  const sw = player.atk && game.weapon ? player.swordBox(ITEMS[game.weapon].reach) : null;
+  for (const s of sc.eshots) {
+    s.x += s.vx * dt; s.y += s.vy * dt; s.life -= dt;
+    if (sc.map.isSolid(Math.floor(s.x / TS), Math.floor((s.y + 6) / TS))) { s.life = 0; addFx({ type: 'spark', x: s.x, y: s.y, t: 0, dur: 0.18 }); continue; }
+    if (sw && s.x > sw.x && s.x < sw.x + sw.w && s.y > sw.y && s.y < sw.y + sw.h) { s.life = 0; addFx({ type: 'spark', x: s.x, y: s.y, t: 0, dur: 0.2 }); audio.sfx('clink', {}, 0.05); continue; }
+    if (player.inv <= 0 && player.kbt <= 0 && !state.dying && Math.abs(s.x - player.x) < 6 && s.y > player.y - 16 && s.y < player.y + 2) {
+      s.life = 0; hurtPlayer(s.dmg || 1, { x: s.x - s.vx * 0.1, y: s.y - s.vy * 0.1 }); if (s.kind === 'ice') audio.sfx('freeze', {}, 0.1);
+    }
+  }
+  sc.eshots = sc.eshots.filter((s) => s.life > 0);
+}
+function drawShots(sc) {
+  for (const s of sc.eshots) {
+    const x = Math.round(s.x - camera.x), y = Math.round(s.y - camera.y);
+    bctx.fillStyle = 'rgba(0,0,0,0.25)'; bctx.fillRect(x - 2, y + 10, 4, 1);
+    bctx.fillStyle = '#e8fbff'; bctx.fillRect(x - 1, y - 2, 3, 5); bctx.fillRect(x - 2, y - 1, 5, 3);
+    bctx.fillStyle = '#7ad0f0'; bctx.fillRect(x, y - 3, 1, 7); bctx.fillRect(x - 3, y, 7, 1);
+  }
 }
 function hurtPlayer(dmg, from) {
   game.hp = Math.max(0, game.hp - dmg);
@@ -304,7 +353,7 @@ function drawFx(sc) {
     if (f.t < 0) continue;
     const k = f.t / f.dur, x = Math.round(f.x - cam.x), y = Math.round(f.y - cam.y);
     if (f.type === 'shock') {
-      bctx.strokeStyle = `rgba(255,140,220,${1 - k})`; bctx.lineWidth = 2;
+      bctx.strokeStyle = `rgba(${f.c || '255,140,220'},${1 - k})`; bctx.lineWidth = 2;
       bctx.beginPath(); bctx.ellipse(x, y, 6 + k * 90, 4 + k * 60, 0, 0, Math.PI * 2); bctx.stroke(); bctx.lineWidth = 1;
     } else if (f.type === 'debris') {
       bctx.fillStyle = f.c || '#6a6478';
@@ -328,6 +377,13 @@ function drawFx(sc) {
       const r = 2 + k * 7;
       for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1], [0.7, 0.7], [-0.7, 0.7], [0.7, -0.7], [-0.7, -0.7]]) bctx.fillRect(Math.round(x + dx * r), Math.round(y + dy * r), 1, 1);
       if (k < 0.4) bctx.fillRect(x - 1, y - 1, 3, 3);
+    } else if (f.type === 'splash') {
+      for (let i = 0; i < 8; i++) {
+        const a = (i / 8) * Math.PI * 2, r = 2 + k * 12;
+        bctx.fillStyle = i % 2 ? `rgba(220,250,255,${1 - k})` : `rgba(90,200,240,${1 - k})`;
+        bctx.fillRect(Math.round(x + Math.cos(a) * r), Math.round(y + Math.sin(a) * r * 0.5 - Math.sin(k * Math.PI) * 8), 2, 2);
+      }
+      bctx.strokeStyle = `rgba(200,245,255,${0.7 * (1 - k)})`; bctx.beginPath(); bctx.ellipse(x, y, 3 + k * 14, 1.5 + k * 6, 0, 0, Math.PI * 2); bctx.stroke();
     } else if (f.type === 'sparkle') {
       bctx.fillStyle = `rgba(255,240,150,${1 - k})`;
       for (let i = 0; i < 6; i++) { const a = i * 1.05 + k * 2; bctx.fillRect(Math.round(x + Math.cos(a) * (3 + k * 8)), Math.round(y + Math.sin(a) * (3 + k * 8) - k * 6), 1, 1); }
@@ -375,7 +431,7 @@ function buildMarkers() {
 }
 function drawMarkers(sc, time) {
   for (const n of sc.npcs) {
-    const m = storyMarker(n.id, G, game.story) || questMarker(n.id, G);
+    const m = storyMarker(n.id, G, game.story) || arc2.marker(n.id, sc.id) || questMarker(n.id, G);
     if (!m) continue;
     const img = markers[m];
     const bob = Math.round(Math.sin(time / 220) * 1.5);
@@ -401,12 +457,14 @@ function enterScene(id, tx, ty, dir, opts = {}) {
   sc.particles = [];
   // Gegner erscheinen bei jedem Betreten neu, Beute verschwindet
   sc.enemies = sc.map.enemies.map((e) => new Enemy(e, enemyArt));
-  sc.drops = []; sc.fx = [];
+  sc.drops = []; sc.fx = []; sc.eshots = [];
   player.atk = null; player.kbt = 0;
   refreshFlags(sc);
-  sc.boss = id === 'tiefe' && !game.story.flags.boss_done ? new Boss(ARENA.cx, ARENA.cy - 6, bossArt, ARENA) : null;
+  const bc = BOSSES[id];
+  sc.boss = bc && !game.story.flags[bc.done] ? bc.make() : null;
   state.fight = false; ui.bossBar(null);
-  if (id === 'tiefe' && game.story.flags.arena_lock) setFlag('arena_lock', false);
+  if (bc && game.story.flags[bc.lock]) setFlag(bc.lock, false);
+  arc2.onEnter(sc);
   if (!opts.silent) showArea(sc.map.name, first);
   if (state.respawn === 'arena') {
     state.respawn = false; game.hp = game.maxHp;
@@ -520,14 +578,17 @@ function interact() {
     const n = t.npc;
     n.talking = true;
     n.facePlayer(player);
-    const st = storyTalk(n.id, G, game.story);
+    let st = storyTalk(n.id, G, game.story);
+    const s2 = arc2.talk(n.id);
+    if (s2 && (s2.override || !st)) st = s2;
+    else if (s2 && s2.prefix && !st.override) st = { ...st, prefix: [...s2.prefix, ...(st.prefix || [])] };
     const qt = st && st.override ? st.override : questTalk(n.id, G);
     let pages = qt ? qt.pages : n.pages(state);
     if (st && st.prefix) pages = [...st.prefix, ...pages];
     dialog.show(n.name, pages, () => { n.talking = false; if (st && st.prefix && st.onClose) st.onClose(); if (qt && qt.onClose) qt.onClose(); }, (qt && qt.choice) || null);
   } else if (t.type === 'door') { audio.sfx('door'); goTo(t.exit.to, t.exit.tx, t.exit.ty, t.exit.dir); }
   else if (t.type === 'chest') openChest(t.chest);
-  else if (!(t.item.id && storyInteract(t.item))) dialog.show(null, t.item.text);
+  else if (!(t.item.id && (storyInteract(t.item) || arc2.interact(t.item)))) dialog.show(null, t.item.text);
 }
 
 // ---------------------------------------------------------------- Größe
@@ -552,7 +613,7 @@ function updateParticles(dt) {
   const sc = state.scene, kind = sc.map.ambience.particles, cam = camera;
   if (!kind) return;
   const P = sc.particles;
-  const want = { fireflies: 36, snow: 90, dust: 40, gulls: 4 }[kind] || 0;
+  const want = { fireflies: 36, snow: 90, dust: 40, gulls: 4, sand: 70, glitter: 40, bubbles: 30 }[kind] || 0;
   const rnd = Math.random;
   while (P.length < want) P.push({ x: cam.x + rnd() * cam.w, y: cam.y + rnd() * cam.h, vx: 0, vy: 0, ph: rnd() * 6.28, s: rnd() });
   for (const p of P) {
@@ -561,6 +622,9 @@ function updateParticles(dt) {
     else if (kind === 'snow') { p.vx = -8 - p.s * 6 + Math.sin(p.ph * 1.5) * 6; p.vy = 14 + p.s * 16; }
     else if (kind === 'dust') { p.vx = Math.sin(p.ph * 0.5 + p.s * 9) * 3; p.vy = -2 - p.s * 2; }
     else if (kind === 'gulls') { p.vx = -26 - p.s * 14; p.vy = Math.sin(p.ph) * 4; }
+    else if (kind === 'sand') { p.vx = 34 + p.s * 40 + Math.sin(p.ph * 2) * 8; p.vy = Math.sin(p.ph * 1.3 + p.s * 7) * 6; }
+    else if (kind === 'glitter') { p.vx = Math.sin(p.ph * 0.4 + p.s * 9) * 3; p.vy = 3 + p.s * 3; }
+    else if (kind === 'bubbles') { p.vx = Math.sin(p.ph * 2 + p.s * 9) * 4; p.vy = -8 - p.s * 10; }
     p.x += p.vx * dt; p.y += p.vy * dt;
     const m = 12;
     if (p.x < cam.x - m) p.x += cam.w + 2 * m; else if (p.x > cam.x + cam.w + m) p.x -= cam.w + 2 * m;
@@ -580,6 +644,12 @@ function drawParticles() {
       bctx.fillStyle = 'rgba(255,255,255,0.85)'; bctx.fillRect(x, y, p.s > 0.7 ? 2 : 1, p.s > 0.7 ? 2 : 1);
     } else if (kind === 'dust') {
       bctx.fillStyle = `rgba(200,190,255,${0.15 + 0.2 * Math.sin(p.ph + p.s * 5) ** 2})`; bctx.fillRect(x, y, 1, 1);
+    } else if (kind === 'sand') {
+      bctx.fillStyle = p.s > 0.5 ? 'rgba(240,210,150,0.55)' : 'rgba(210,170,110,0.45)'; bctx.fillRect(x, y, p.s > 0.85 ? 2 : 1, 1);
+    } else if (kind === 'glitter') {
+      const a = Math.max(0, Math.sin(p.ph * 3 + p.s * 20)); if (a > 0.6) { bctx.fillStyle = `rgba(220,245,255,${a})`; bctx.fillRect(x, y, 1, 1); if (a > 0.95) { bctx.fillRect(x - 1, y, 3, 1); bctx.fillRect(x, y - 1, 1, 3); } }
+    } else if (kind === 'bubbles') {
+      bctx.strokeStyle = `rgba(170,240,255,${0.3 + 0.3 * p.s})`; bctx.strokeRect(x + 0.5, y + 0.5, p.s > 0.7 ? 2 : 1, p.s > 0.7 ? 2 : 1);
     } else if (kind === 'gulls') {
       const flap = Math.floor(p.ph * 6 + p.s * 4) % 2;
       bctx.fillStyle = '#f4f4f0';
@@ -598,7 +668,8 @@ function lighting(time) {
   bctx.globalCompositeOperation = 'source-over';
   let dark = amb.dark || 0, col = amb.darkColor || '10,16,48', pl = amb.playerLight || 0;
   const lights = map.lights.filter((l) => !l.showIf || game.story.flags[l.showIf]);
-  if (sc.boss && !sc.boss.dead) { const b = sc.boss; lights.push({ x: b.x, y: b.y - 30, r: 70 + b.eyeGlow * 20, color: b.phase === 3 ? 'rgba(255,60,90,0.5)' : 'rgba(255,80,200,0.45)', flicker: 0.6 });
+  if (sc.boss && !sc.boss.dead && sc.boss.lights) lights.push(...sc.boss.lights());
+  else if (sc.boss && !sc.boss.dead) { const b = sc.boss; lights.push({ x: b.x, y: b.y - 30, r: 70 + b.eyeGlow * 20, color: b.phase === 3 ? 'rgba(255,60,90,0.5)' : 'rgba(255,80,200,0.45)', flicker: 0.6 });
     for (const pr of b.projs) lights.push({ x: pr.x, y: pr.y, r: 14, color: 'rgba(255,90,210,0.6)', flicker: 0 });
     for (const m of b.marks) lights.push({ x: m.x, y: m.y, r: 16, color: 'rgba(255,50,90,0.5)', flicker: 0 }); }
   if (outdoor && state.tint === 2) { dark = Math.max(dark, 0.62); col = amb.dark ? col : '10,16,48'; pl = Math.max(pl, 46); lights.push(...sc.nightLights); }
@@ -654,7 +725,7 @@ function render(time) {
   for (const o of list) {
     if (o === player) { player.draw(bctx, cam); afterPlayer = true; continue; }
     if (o instanceof NPC || o instanceof Enemy) { o.draw(bctx, cam); continue; }
-    if (o instanceof Boss) { o.draw(bctx, cam, time); continue; }
+    if (o === sc.boss) { o.draw(bctx, cam, time); continue; }
     let img = o.s.frames ? o.s.frames[af % o.s.frames.length] : o.s.canvas;
     if (o.chest && game.opened[o.chest]) img = art.sprites[o.locked ? 'chest_locked_open' : 'chest_open'].canvas;
     bctx.drawImage(img, o.x - cam.x, o.y - cam.y);
@@ -662,6 +733,8 @@ function render(time) {
   }
   if (occluded && !state.hidePlayer) player.draw(bctx, cam, 0.38);
   if (sc.boss) sc.boss.drawAir(bctx, cam);
+  drawShots(sc);
+  arc2.draw(bctx, cam);
   drawFx(sc);
   drawFuse(time);
   if (!state.cine) drawMarkers(sc, time);
@@ -722,6 +795,11 @@ function checkExits() {
     if (fx >= e.x - gx && fx < e.x + e.w + gx && fy >= e.y - gy && fy < e.y + e.h + gy) inside = e;
   }
   if (!inside) { state.armed = true; return; }
+  if (inside.need && !game.story.flags[inside.need]) {
+    if (performance.now() - (state.needToast || 0) > 2500) { state.needToast = performance.now(); ui.toast(inside.needText || 'Hier geht es nicht weiter.'); audio.sfx('bonk', {}, 0.3); }
+    player.x += inside.dir === 'left' ? 6 : inside.dir === 'right' ? -6 : 0; player.y += inside.dir === 'up' ? 6 : inside.dir === 'down' ? -6 : 0;
+    return;
+  }
   if (state.armed) { if (inside.kind === 'door') audio.sfx('door'); goTo(inside.to, inside.tx, inside.ty, inside.dir); }
 }
 
@@ -732,12 +810,15 @@ function refreshFlags(sc) {
   // erst alle Fußabdrücke freigeben, dann sichtbare wieder blockieren (Objekte dürfen sich überlappen)
   for (const o of fl) { o.hidden = !!((o.hideIf && f[o.hideIf]) || (o.showIf && !f[o.showIf])); cells(o, (i) => { sc.map.solid[i] = 0; }); }
   for (const o of fl) if (!o.hidden) cells(o, (i) => { sc.map.solid[i] = 1; });
+  // NPCs mit Bedingungen (z. B. Selma reist ab, Jan wartet an der Küste)
+  sc.npcs = sc.allNpcs.filter((n) => { const sp = n.spec || {}; return !((sp.hideIf && f[sp.hideIf]) || (sp.showIf && !f[sp.showIf])); });
+  sc.map.entities = sc.npcs;
 }
 function setFlag(k, v = true) { game.story.flags[k] = v; if (state.scene) refreshFlags(state.scene); G.markDirty(); }
 
 // ---------------------------------------------------------------- Skript-Werkzeuge (Zwischensequenzen)
 const NOINPUT = {};
-const VOICE = { 'Oma Hilde': 1.25, Lina: 1.5, 'Schmied Bruno': 0.7, 'Bergmann Erwin': 0.75, 'Kräuterfrau Mira': 1.1, 'Fischer Jan': 0.85, 'Wirtin Greta': 1.15, 'Krämer Anton': 0.95, Inschrift: 0.6 };
+const VOICE = { 'Oma Hilde': 1.25, Lina: 1.5, 'Schmied Bruno': 0.7, 'Bergmann Erwin': 0.75, 'Kräuterfrau Mira': 1.1, 'Fischer Jan': 0.85, 'Wirtin Greta': 1.15, 'Krämer Anton': 0.95, Inschrift: 0.6, 'Kartografin Selma': 1.3, 'Wirt Kadir': 0.8, 'Händlerin Nuri': 1.05, 'Eremit Frostbart': 0.6 };
 const timers = [];
 const wait = (s) => new Promise((r) => timers.push({ t: s, r }));
 function updateTimers(dt) { for (const t of [...timers]) { t.t -= dt; if (t.t <= 0) { timers.splice(timers.indexOf(t), 1); t.r(); } } }
@@ -821,11 +902,12 @@ function drawFog(sc, time) {
 function wantedTrack() {
   if (state.musicOverride !== undefined) return state.musicOverride;
   const sc = state.scene; if (!sc) return null;
-  if (sc.boss && state.fight) return 'boss';
+  if (sc.boss && state.fight) return BOSSES[sc.id].music;
+  const a2 = arc2.track(sc); if (a2) return a2;
   if (sc.id === 'village') return state.tint === 2 ? 'night' : 'village';
   return { dunkelwald: 'forest', berge: 'mountain', hoehle: 'cave', tiefe: 'cave', kueste: 'beach' }[sc.id] || 'tavern';
 }
-const SURF = { [0]: 'grass', [1]: 'grass', [2]: 'grass', [3]: 'dirt', [4]: 'sand', [7]: 'stone', [8]: 'wood', [9]: 'dirt', [10]: 'grass', [11]: 'grass', [13]: 'stone', [15]: 'snow', [16]: 'wood', [19]: 'stone', [22]: 'wood' };
+const SURF = { [0]: 'grass', [1]: 'grass', [2]: 'grass', [3]: 'dirt', [4]: 'sand', [7]: 'stone', [8]: 'wood', [9]: 'dirt', [10]: 'grass', [11]: 'grass', [13]: 'stone', [15]: 'snow', [16]: 'wood', [19]: 'stone', [22]: 'wood', [T.DUNE]: 'sand', [T.QSAND]: 'sand', [T.RUIN]: 'stone', [T.ICE]: 'stone', [T.TEMPLE]: 'stone' };
 let lastStep = 0;
 function footsteps() {
   const f = player.moving ? player.frame : 0;
@@ -849,8 +931,9 @@ function storyUpdate(sc, dt) {
   storyT -= dt;
   if (storyT <= 0 && !state.script) { storyT = 0.25; storyCheck(); }
   // Arena betreten → Bosskampf
-  const b = sc.boss;
-  if (b && b.state === 'sleep' && !state.script && game.story.flags.tor && game.story.ch >= 5 && player.y < 19.6 * TS) bossIntro();
+  const b = sc.boss, bc = BOSSES[sc.id];
+  if (b && b.state === 'sleep' && !state.script && !state.fade && bc.trigger()) bc.intro();
+  arc2.update(sc, dt);
 }
 function storyInteract(it) {
   const f = game.story.flags, ch = game.story.ch, q = game.quests;
@@ -890,10 +973,10 @@ async function playCine(panels) {
   ui.cine(null); state.cine = null; state.panAnim = null; state.cam = null; state.hidePlayer = false;
   return skipped;
 }
-function showCredits() {
+function showCredits(lines = CREDITS) {
   return new Promise((res) => {
     state.credits = { ready: false, res: () => { ui.credits(null); state.credits = null; res(); } };
-    ui.credits(CREDITS);
+    ui.credits(lines);
     setTimeout(() => { if (state.credits) state.credits.ready = true; }, 2500);
   });
 }
@@ -1027,10 +1110,23 @@ const bossEnv = {
   spawn: (type, x, y) => spawnEnemyAt(type, x, y),
   onPhase: (n) => {
     state.flash = { c: '255,120,220', t: 0, dur: 0.6 };
-    ui.banner(`Phase ${n}`, n === 2 ? 'Der Panzer bricht!' : 'Umbrakor rast!', [], n === 2 ? 'Achtung: Kristallstacheln und Schattenschleime' : 'Splitterspiralen! Schlag die Splitter mit dem Schwert weg.', 'boss');
+    BOSSES[state.scene.id].onPhase(n);
   },
-  onDying: () => { for (const e of state.scene.enemies) addFx({ type: 'poof', x: e.x, y: e.y - 6, t: 0, dur: 0.45 }); state.scene.enemies = []; },
-  onDefeated: () => bossDefeated(),
+  onStun: () => { const bc = BOSSES[state.scene.id]; if (bc.onStun) bc.onStun(); },
+  scripted: () => !!state.script,
+  onDying: () => { for (const e of state.scene.enemies) addFx({ type: 'poof', x: e.x, y: e.y - 6, t: 0, dur: 0.45 }); state.scene.enemies = []; state.scene.eshots = []; },
+  onDefeated: () => BOSSES[state.scene.id].defeated(),
+};
+/** Boss-Register: je Karte Erzeugung, Flags (besiegt / Arena verschlossen), Auslöser, Musik, Texte. */
+const BOSSES = {
+  tiefe: {
+    name: BOSS_NAME, title: BOSS_TITLE, music: 'boss', done: 'boss_done', lock: 'arena_lock', respawn: ARENA_RESPAWN,
+    make: () => new Boss(ARENA.cx, ARENA.cy - 6, bossArt, ARENA),
+    trigger: () => game.story.flags.tor && game.story.ch >= 5 && player.y < 19.6 * TS,
+    intro: () => bossIntro(),
+    onPhase: (n) => ui.banner(`Phase ${n}`, n === 2 ? 'Der Panzer bricht!' : 'Umbrakor rast!', [], n === 2 ? 'Achtung: Kristallstacheln und Schattenschleime' : 'Splitterspiralen! Schlag die Splitter mit dem Schwert weg.', 'boss'),
+    defeated: () => bossDefeated(),
+  },
 };
 async function bossDefeated() {
   state.fight = false;
@@ -1057,6 +1153,14 @@ async function bossDefeated() {
   saveNow();
 }
 
+// ---------------------------------------------------------------- Zweite Geschichte
+const arc2 = createArc2({
+  G, game, state, player, ui, audio, dialog,
+  runScript, wait, say, pan, panBack, walkPlayer, fadeTo, playCine, showCredits, spawnEnemyAt, addFx, setFlag, saveNow, getScene, hurtPlayer,
+  shake: (s) => { state.shake = Math.max(state.shake, s); },
+});
+for (const [id, cfg] of Object.entries(arc2.bosses)) BOSSES[id] = { ...cfg, intro: () => arc2.bossIntro(cfg) };
+
 // ---------------------------------------------------------------- Loop
 let last = performance.now();
 function frame(now) {
@@ -1074,7 +1178,8 @@ function frame(now) {
     updateFx(sc, dt);
     if (state.dying <= 0) {
       state.dying = 0; player.inv = 0;
-      if (sc.id === 'tiefe') { state.respawn = 'arena'; goTo('tiefe', ARENA_RESPAWN[0], ARENA_RESPAWN[1], 'up'); }
+      const bc = BOSSES[sc.id];
+      if (bc && (sc.id === 'tiefe' || state.fight)) { state.respawn = 'arena'; goTo(sc.id, bc.respawn[0], bc.respawn[1], 'up'); }
       else { state.respawn = true; goTo('village', 57.5, 32, 'down'); }
     }
   } else if (!ui.open) {
@@ -1086,7 +1191,7 @@ function frame(now) {
     if (!dialog.open && !state.cine) {
       if (!state.script) { updateCombat(sc, dt); updatePickups(sc, dt); checkExits(); }
       if (sc.boss) { sc.boss.target = player; if (!state.script || sc.boss.state === 'dying') sc.boss.update(dt, bossEnv); }
-      if (sc.boss && state.fight) ui.bossBar(sc.boss, BOSS_NAME, BOSS_TITLE);
+      if (sc.boss && state.fight) ui.bossBar(sc.boss, BOSSES[sc.id].name, BOSSES[sc.id].title);
       storyUpdate(sc, dt);
     }
     updateFx(sc, dt);
@@ -1147,7 +1252,9 @@ window.__game = {
   get credits() { return !!state.credits; },
   get wantedTrack() { return wantedTrack(); },
   setStory(ch, flags = {}) { game.story.ch = ch; Object.assign(game.story.flags, flags); refreshFlags(state.scene); saveNow(); },
-  setFlag, storyCheck,
+  setFlag, storyCheck, arc2,
+  setStory2(ch2, flags = {}) { game.story.ch2 = ch2; Object.assign(game.story.flags, flags); refreshFlags(state.scene); saveNow(); },
+  get bossConfig() { return BOSSES[state.scene.id] || null; },
   fullMapDataURL(id) {
     const sc = id ? getScene(id) : state.scene;
     refreshFlags(sc);

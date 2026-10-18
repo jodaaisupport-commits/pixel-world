@@ -28,8 +28,8 @@ export const CHAPTERS2 = [
     desc: 'Der Sonnensplitter zeigt dir einen Gletscher hinter den Graufels-Bergen. Dort, im ewigen Eis, glimmt der zweite Splitter.',
     steps: (G, f) => [
       { text: 'Folge dem Frostpass im Osten der Graufels-Berge zu den Frosthöhen.', done: G.visited('frost') },
-      { text: 'Überquere die Gletscherspalte und sprich mit Eremit Frostbart.', done: !!f.a2_frostbart },
-      { text: 'Hol den Frostsplitter aus der Eisgrotte – und überlebe ihre Wächter.', done: !!f.a2_frost }],
+      { text: 'Sprich mit Eremit Frostbart in seinem Lager.', done: !!f.a2_frostbart },
+      { text: 'Überquere die Gletscherspalte und hol den Frostsplitter aus der Eisgrotte – überlebe ihre Wächter.', done: !!f.a2_frost }],
   },
   {
     title: 'Jans Boot',
@@ -69,7 +69,10 @@ const SPLINTERS = (G) => (G.has('sonnensplitter') ? 1 : 0) + (G.has('frostsplitt
 /** Story-Dialoge der zweiten Geschichte (gleiche Rückgabe wie storyTalk). H = Hooks (Szenen). */
 export function story2Talk(id, G, S, H) {
   const f = S.flags, ch = S.ch2 || 0;
-  if (!ch) return null;
+  if (!ch) {
+    if (S.ch >= 6 && (id === 'greta' || id === 'hilde' || id === 'lina')) return { prefix: [{ greta: 'Komisch … seit ein paar Nächten weht vom Westpfad warmer Wind herüber. Mit Sand drin! Sand, bei uns!', hilde: 'Kindchen, dein Splitter glitzert so seltsam. Geh doch mal zum Westrand des Dorfes, da war heute so ein Licht.', lina: 'Am Westpfad steht ein umgefallener Schlagbaum, dahinter ist nur Sand! Ob da wer wohnt?' }[id]] };
+    return null;
+  }
   const set = (k) => { f[k] = true; G.markDirty(); };
   if (id === 'selma') {
     if (ch === 1 && !f.a2_selma) return { override: { pages: [
@@ -103,7 +106,7 @@ export function story2Talk(id, G, S, H) {
   if (id === 'frostbart') {
     if (ch === 3 && !f.a2_frostbart) return { override: { pages: [
       'Hmpf. Ein Wanderer. Mit einem Haken. Und einem summenden Stein in der Tasche. Das ist neu.',
-      'Der Frostsplitter, ja? Liegt in der Grotte im Norden. Seit er da ist, friert alles doppelt so schnell. Sogar meine Suppe. Von unten.',
+      'Der Frostsplitter, ja? Liegt in der Grotte drüben im Nordosten, hinter der Gletscherspalte. Dein Haken wird dich rüberbringen. Seit er da ist, friert alles doppelt so schnell. Sogar meine Suppe. Von unten.',
       'Die Grotte hat Wächter. Wer den Splitter nimmt, weckt sie. Kämpf nicht auf dem Eis, wenn du rutschst. Oder rutsch wenigstens elegant.',
       'Und falls du drei Eiskristalle findest: Bring sie mir. Ich hab da noch alte Steigeisen. Damit rutschst du nicht mehr wie ein Pinguin.'],
       onClose: () => { set('a2_frostbart'); if (!G.state.quests.steigeisen) G.startQuest('steigeisen'); } } };
