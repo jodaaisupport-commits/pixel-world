@@ -21,6 +21,8 @@ in Offscreen-Canvases gemalt und pixelgenau (Nearest-Neighbor, ganzzahlig ~3×) 
 | **Frosthöhen** *(Phase 5, 64×48)* | Gletscher mit Eisklippen, Schnee, Eisspitzen, Gletscherspalte, Frostbarts Hütte mit Lagerfeuer und Schneemann | **Frostpass** am Ostrand der Graufels-Berge |
 | **Eisgrotte** | Spiegelglattes Eis (rutschig!), Eiszapfen, Eisbrocken, Altar des Frosts | Höhleneingang im Nordosten der Frosthöhen (jenseits der Spalte) |
 | **Gezeitentempel** *(Phase 5)* | Versunkener Tempel: Anlegestelle, Kanäle, Vorhalle mit Kohlebecken, Korallen und Seetang, Halle der Gezeiten mit fünf Becken (Endgegnerin) | Mit **Jans Boot** vom Steg der Möwenbucht |
+| **Vulkaninsel** *(v100)* | Lavafelder, Obsidian, Warp-Stein, Lore-Tafel | Ostausgang der **Möwenbucht** |
+| **Unterwasser-Grotte** *(v100)* | Korallen, Perlen, Muscheln, kühler Warp-Stein | Tauchpunkt in der Möwenbucht |
 
 **Innenräume** – alle 4 Dorfhäuser sind begehbar (in die Tür laufen oder davor `E` drücken), jeweils handgestaltet
 mit Holz- bzw. Steinboden, Wänden, Fenstern und blockierenden Möbeln:
@@ -53,6 +55,7 @@ viele geben Hinweise auf die anderen Gebiete, manche reagieren darauf, ob man ei
 | Wirt Kadir *(neu)* | Gasthaus in der Oase – Sprichwörter, Minztee, kennt die alten Legenden |
 | Händlerin Nuri *(neu)* | Nuris Basar – trocken-sarkastisch, „Keine Rückgabe!“ |
 | Eremit Frostbart *(neu)* | Frosthöhen – grummelig („Hmpf“), heimlich hilfsbereit |
+| Runen-Übersetzer *(v100)* | Dorfplatz – übersetzt Schrein-Runen |
 
 ## Starten
 
@@ -451,3 +454,35 @@ Debug-Hilfen: `?nointro=1` überspringt das Intro; `window.__game.setStory(kapit
 - Weitere Waffen (Bogen, Axt), Schnellreise zwischen Dorf und Oase
 - Wetter, echter Tageszyklus mit NPC-Tagesablauf
 - Mehrere Speicherplätze, Touch-/Gamepad-Steuerung
+
+
+## Changelog – v100 (100 Verbesserungen)
+
+Große Erweiterungspackung: Touch-Feinschliff, Kampf (Krits, Status, Waffenwechsel, Schild, Combo, Ausweichen, Arena-Fallen, Checkpoint-Tod), Story (Schnellreise, Kapitelwahl, Tagebuch, Ruf, Briefe, Epilog), Welt (Wetter, Tag/Nacht, Schwimmen, Klettern, Farm, Angeln, Bergbau, Kamel, Boot, Warp-Steine, Vulkaninsel + Unterwasser-Grotte, Sammler), NPCs (Routinen, Freundschaft, Versteckspiel, Begleiter Selma, Runen-Übersetzer), Items (Crafting, Tränke, Equipment, Hotbar, Rezepte, Schlüsselbund, Skins), Audio (Ambient, Kampfboost, getrennte Lautstärken, Mute, Fußtritte, Echo, Jingle, Stereo), UI (Settings, 3 Speicherplätze, Auto-Save, Tutorial, große Schrift, Farbblind, Performance, Screenshot), Technik (Service Worker, Ladebalken, Fehlerseite, Seed kopieren, `?debug=1`, Mod-API unter `/mods/`).
+
+Status zur Laufzeit: `window.__game.features` bzw. Konsole `[pixel-world] v100 installiert: N/100`.
+
+### Gerätetest & Bug-Report
+
+- Live: https://jodaaisupport-commits.github.io/pixel-world/
+- Repo/Issues: https://github.com/jodaaisupport-commits/pixel-world/issues
+- Bitte Gerät, Browser und Schritte nennen. Debug: `?debug=1`, Reset: `?reset=1`, Slot: `?slot=0|1|2`.
+
+### Neue Tasten (Desktop)
+
+| Taste | Aktion |
+|---|---|
+| `K` | Ausweichen (I-Frame) |
+| `C` | Waffe wechseln |
+| `F` | Schnellreise Dorf ↔ Oase (nach Story-Flag) |
+| `H` | Tagebuch |
+| `L` | Briefe |
+| `R` | Reittier (Wüste/Oase) |
+| `G` | Angeln |
+| `Y` | Kapitelwahl (nach Durchspielen) |
+| `1`–`4` | Hotbar |
+| `F9` / `U` | Screenshot |
+
+### Touch
+
+- Joystick (Analog oder D-Pad in Optionen), A/B frei belegbar, Pause-Button, Cutscene: **Doppeltippen** = überspringen.

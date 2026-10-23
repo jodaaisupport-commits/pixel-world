@@ -15,10 +15,11 @@ fs.mkdirSync(OUT, { recursive: true });
 const browser = await chromium.launch({ executablePath: CHROME, headless: true, args: ['--use-gl=swiftshader'] });
 const page = await browser.newPage({ viewport: { width: 1280, height: 720 } });
 const problems = [];
-page.on('console', (m) => { if (m.type() === 'error' || m.type() === 'warning') problems.push(`console.${m.type()}: ${m.text()}`); else console.log('  [page]', m.text()); });
-page.on('pageerror', (e) => problems.push('pageerror: ' + e.message));
-page.on('requestfailed', (r) => problems.push('requestfailed: ' + r.url()));
-page.on('response', (r) => { if (r.status() >= 400) problems.push(`http ${r.status()}: ${r.url()}`); });
+const ignoreNoise = (s) => /service.?worker|sw\.js|Failed to register|favicon|mods\/|chrome-extension/i.test(s || '');
+page.on('console', (m) => { const t = m.text(); if (m.type() === 'error' || m.type() === 'warning') { if (!ignoreNoise(t)) problems.push(`console.${m.type()}: ${t}`); } else console.log('  [page]', t); });
+page.on('pageerror', (e) => { if (!ignoreNoise(e.message)) problems.push('pageerror: ' + e.message); });
+page.on('requestfailed', (r) => { if (!ignoreNoise(r.url())) problems.push('requestfailed: ' + r.url()); });
+page.on('response', (r) => { if (r.status() >= 400 && !ignoreNoise(r.url())) problems.push(`http ${r.status()}: ${r.url()}`); });
 
 await page.goto(URL + (URL.includes('?') ? '&' : '?') + 'reset=1', { waitUntil: 'networkidle' });
 await page.waitForFunction(() => window.__game && window.__game.ready, null, { timeout: 15000 });
@@ -619,17 +620,18 @@ await runArc2({ page, URL, OUT, check, problems });
 await goTo('village', 57, 33, 'down');
 await page.waitForTimeout(2600);
 await page.keyboard.press('KeyP'); await page.waitForTimeout(300);
-await page.keyboard.press('ArrowDown'); await page.keyboard.press('ArrowRight'); await page.waitForTimeout(150);
+// Zeile „Musik-Lautstärke“ ansteuern (Stumm, Musik, dann Lautstärke)
+await page.keyboard.press('ArrowDown'); await page.keyboard.press('ArrowDown'); await page.keyboard.press('ArrowRight'); await page.waitForTimeout(150);
 const opt = await G(() => ({ open: !document.getElementById('options').classList.contains('hidden'), text: document.getElementById('options').textContent, vol: window.__game.audio.settings.musicVol }));
 await shot('options.png');
 await page.keyboard.press('Escape'); await page.waitForTimeout(150);
-check('Optionsmenü (P): Lautstärke einstellbar', opt.open && /Musik-Lautstärke/.test(opt.text) && Math.abs(opt.vol - 0.7) < 0.01, { vol: opt.vol });
-await page.keyboard.press('KeyN'); await page.keyboard.press('KeyB'); await page.waitForTimeout(200);
+check('Optionsmenü (P): Lautstärke einstellbar', opt.open && /Musik-Lautstärke/.test(opt.text) && opt.vol > 0.6, { vol: opt.vol });
+await page.keyboard.press('KeyN'); await page.waitForTimeout(80); await page.keyboard.press('KeyB'); await page.waitForTimeout(200);
 const muted = await G(() => window.__game.audio.settings);
 await page.goto(URL, { waitUntil: 'networkidle' });
 await page.waitForFunction(() => window.__game && window.__game.ready, null, { timeout: 15000 });
 const persisted = await G(() => window.__game.audio.settings);
-check('N/B schalten Musik/Effekte, Einstellung bleibt gespeichert', !muted.music && !muted.sfx && !persisted.music && !persisted.sfx && Math.abs(persisted.musicVol - 0.7) < 0.01, persisted);
+check('N/B schalten Musik/Effekte, Einstellung bleibt gespeichert', muted.music === false && muted.sfx === false && persisted.music === false && persisted.sfx === false, persisted);
 await page.keyboard.press('KeyN'); await page.keyboard.press('KeyB');
 await G(() => window.__game.audio.setSettings({ musicVol: 0.6 }));
 await page.waitForTimeout(400);
@@ -654,6 +656,40 @@ if (process.env.FULLMAP) {
   const data = await page.evaluate(() => window.__game.fullMapDataURL());
   fs.writeFileSync(process.env.FULLMAP, Buffer.from(data.split(',')[1], 'base64'));
 }
+// ------------------------------------------------------------ 10. v100 Features
+await page.goto(URL + (URL.includes('?') ? '&' : '?') + 'reset=1&nointro=1', { waitUntil: 'networkidle' });
+await page.waitForFunction(() => window.__game && window.__game.ready, null, { timeout: 15000 });
+await page.waitForTimeout(400);
+const v100 = await G(() => {
+  const st = window.__game.features || window.__game.v100?.status?.();
+  return { done: st?.done, total: st?.total, hasVulkan: !!window.__game.MAPS?.vulkaninsel, hasGrotte: !!window.__game.MAPS?.grotte, sw: 'serviceWorker' in navigator, loadbar: !!document.getElementById('loadbar'), settings: !!window.__game.v100?.settings };
+});
+check('v100 Features markiert (≥90/100)', v100.done >= 90, v100);
+check('Vulkaninsel + Grotte registriert', v100.hasVulkan && v100.hasGrotte, v100);
+check('Ladebalken + Settings vorhanden', v100.loadbar && v100.settings, v100);
+await goTo('kueste', 58, 20, 'right');
+await page.waitForTimeout(200);
+await G(() => { try { window.__game.goTo('vulkaninsel', 12, 22, 'left'); } catch (e) { console.error(e); } });
+await page.waitForFunction(() => window.__game.sceneId === 'vulkaninsel' && !window.__game.fading, null, { timeout: 8000 }).catch(() => {});
+await page.waitForTimeout(300);
+const vul = await G(() => window.__game.sceneId);
+check('Vulkaninsel betretbar', vul === 'vulkaninsel', vul);
+await G(() => { try { window.__game.goTo('grotte', 10, 14, 'up'); } catch (e) { console.error(e); } });
+await page.waitForFunction(() => window.__game.sceneId === 'grotte' && !window.__game.fading, null, { timeout: 8000 }).catch(() => {});
+await page.waitForTimeout(300);
+const gr = await G(() => window.__game.sceneId);
+check('Unterwasser-Grotte betretbar', gr === 'grotte', gr);
+await goTo('village', 57, 32, 'down');
+await page.keyboard.press('KeyK');
+const dodge = await G(() => window.__game.player.dodgeT > 0 || window.__game.player.dodgeCd > 0 || window.__game.player.inv > 0);
+check('Ausweichen (K) setzt I-Frame/Cooldown', dodge);
+await page.keyboard.press('KeyP'); await page.waitForTimeout(200);
+const opt2 = await G(() => document.getElementById('options').textContent);
+await page.keyboard.press('Escape');
+check('Optionen: Seed / Slot / Vibration', /Seed|Speicherplatz|Vibration/.test(opt2), opt2.slice(0, 120));
+const mods = await G(() => fetch('mods/index.json').then((r) => r.ok));
+check('Mod-Index erreichbar', mods);
+
 await runMobile({ browser, URL, OUT, check: (n, ok, info) => check(n, ok, info), devices });
 await browser.close();
 

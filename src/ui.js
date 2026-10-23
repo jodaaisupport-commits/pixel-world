@@ -145,7 +145,7 @@ export class UI {
       else this.key('KeyE');
     });
   }
-  items() { return Object.keys(this.G.state.inv).filter((k) => this.G.state.inv[k] > 0); }
+  items() { return this.G.filteredInv ? this.G.filteredInv() : Object.keys(this.G.state.inv).filter((k) => this.G.state.inv[k] > 0); }
   render() {
     if (this.mode === 'inv') this.renderInv();
     else if (this.mode === 'quests') this.renderQuests();
@@ -153,19 +153,35 @@ export class UI {
     else if (this.mode === 'options') this.renderOptions();
   }
   optionRows() {
-    const a = this.G.audio.settings, bar = (v) => '■'.repeat(Math.round(v * 10)) + '□'.repeat(10 - Math.round(v * 10));
+    const a = this.G.audio.settings, s = this.G.vsettings ? this.G.vsettings() : {};
+    const bar = (v) => '■'.repeat(Math.round(v * 10)) + '□'.repeat(10 - Math.round(v * 10));
+    const slots = this.G.listSlots ? this.G.listSlots() : [null, null, null];
+    const slot = this.G.currentSlot ? this.G.currentSlot() : 0;
     return [
+      ['Stumm', a.mute ? 'An' : 'Aus', 'mute'],
       ['Musik', a.music ? 'An' : 'Aus', 'music'],
       ['Musik-Lautstärke', `${bar(a.musicVol)} ${Math.round(a.musicVol * 100)}%`, 'musicVol'],
       ['Soundeffekte', a.sfx ? 'An' : 'Aus', 'sfx'],
       ['Effekt-Lautstärke', `${bar(a.sfxVol)} ${Math.round(a.sfxVol * 100)}%`, 'sfxVol'],
+      ['UI-Lautstärke', `${bar(a.uiVol ?? 0.7)} ${Math.round((a.uiVol ?? 0.7) * 100)}%`, 'uiVol'],
+      ['Stereo-Pan', a.stereoPan !== false ? 'An' : 'Aus', 'stereoPan'],
       ['Touch-Steuerung', this.G.touchLabel ? this.G.touchLabel() : 'Aus', 'touch'],
+      ['Stick-Modus', this.G.stickLabel ? this.G.stickLabel() : 'Analog', 'stick'],
+      ['A/B-Belegung', this.G.btnLabel ? this.G.btnLabel() : 'A/B', 'btns'],
+      ['Vibration', s.vibrate !== false ? 'An' : 'Aus', 'vibrate'],
+      ['Gegner-HP', s.showEnemyHp ? 'An' : 'Aus', 'enemyHp'],
+      ['Große Schrift', s.bigText ? 'An' : 'Aus', 'bigText'],
+      ['Farbblind-Modus', s.colorblind ? 'An' : 'Aus', 'colorblind'],
+      ['Performance', s.performance ? 'An' : 'Aus', 'performance'],
+      ['Speicherplatz', `Slot ${slot + 1}` + (slots[slot] ? ` (${slots[slot].map || '?'})` : ' · leer'), 'slot'],
+      ['Spielstand löschen', 'Slot ' + (slot + 1), 'delsave'],
+      ['Seed kopieren', this.G.seedLabel ? this.G.seedLabel() : '—', 'seed'],
       ['Zurück zum Spiel', '', 'close'],
     ];
   }
   renderOptions() {
     const rows = this.optionRows(), tr = this.G.trackName();
-    this.opt.querySelector('.opt-body').innerHTML = rows.map(([l, v, k], i) => `<div data-i="${i}" class="opt-row${i === this.optSel ? ' sel' : ''}"><span>${i === this.optSel ? '▶' : '&nbsp;'} ${l}</span><b class="${v === 'Aus' ? 'off' : ''}">${v}</b></div>`).join('') +
+    this.opt.querySelector('.opt-body').innerHTML = rows.map(([l, v, k], i) => `<div data-i="${i}" class="opt-row${i === this.optSel ? ' sel' : ''}" tabindex="0" role="option" aria-selected="${i===this.optSel}"><span>${i === this.optSel ? '▶' : '&nbsp;'} ${l}</span><b class="${v === 'Aus' ? 'off' : ''}">${v}</b></div>`).join('') +
       `<div class="opt-now">♪ Jetzt läuft: <b>${tr}</b>${this.G.audio.ready ? '' : ' <i>(Ton startet nach dem ersten Tastendruck)</i>'}</div>
        <div class="opt-keys"><b>N</b> Musik an/aus · <b>B</b> Effekte an/aus · <b>P</b>/<b>Esc</b> Optionen</div>`;
   }
@@ -185,6 +201,7 @@ export class UI {
       `<div class="inv-top">${eq(s.weapon, 'Waffe')}${eq(s.lamp ? 'grubenlampe' : null, 'Lampe')}
         <div class="purse"><img src="${this.icon.taler}"> ${s.coins} Taler<br><span class="hp">${s.hp / 2} / ${s.maxHp / 2} Herzen</span></div></div>
        ${s.boots || s.hook || s.grip || (s.story && s.story.ch2) ? `<div class="inv-top tools">${eq(s.boots ? 'sandlaeufer' : null, 'Stiefel')}${eq(s.hook ? 'enterhaken' : null, 'Haken')}${eq(s.grip ? 'steigeisen' : null, 'Eisen')}</div>` : ''}
+       <div class="hotbar-row">Hotbar: ${(this.G.state.hotbar||[]).map((id,i)=>`<span class="hb${i=== (this.G.state.hotbarSel||0)?' on':''}">${i+1}:${id?`<img src="${this.icon[id]}">`:'·'}</span>`).join(' ')}</div>
        <div class="grid">${grid}</div>
        <div class="desc">${def ? `<b>${def.name}${s.inv[cur] > 1 ? ' ×' + s.inv[cur] : ''}</b><p>${def.desc}</p>${action}` : '<p class="muted">Leerer Platz.</p>'}</div>`;
   }
@@ -212,7 +229,7 @@ export class UI {
       let cur = steps.findIndex((st) => !st.done);
       html += `<div class="quest"><div class="q-title">${q.title}</div><div class="q-giver">von ${q.giver}</div><p>${q.desc}</p><ul>` +
         steps.map((st, i) => (i <= cur || st.done ? `<li class="${st.done ? 'done' : 'cur'}">${st.done ? '✔' : '▸'} ${st.text}</li>` : '')).join('') +
-        `</ul><div class="q-reward">Belohnung: ${q.reward}</div></div>`;
+        `</ul><div class="q-reward">Belohnung (Vorschau): ${q.reward}</div></div>`;
     }
     if (done.length) html += '<div class="q-done-head">Abgeschlossen</div>' + done.map((id) => `<div class="q-done">✔ ${QUESTS[id].title}</div>`).join('');
     this.ql.querySelector('.ql-body').innerHTML = html;
@@ -224,8 +241,9 @@ export class UI {
     this.shop.querySelector('h2').textContent = this.G.shopTitle ? this.G.shopTitle() : 'Antons Krämerladen';
     if (this.shopSel >= list.length) this.shopSel = 0;
     this.shop.querySelector('.shop-body').innerHTML = list.map((id, i) => {
-      const d = ITEMS[id], afford = s.coins >= d.price;
-      return `<div data-i="${i}" class="shop-row${i === this.shopSel ? ' sel' : ''}${afford ? '' : ' poor'}"><img src="${this.icon[id]}"><div><b>${d.name}</b><p>${d.desc}</p></div><span class="price"><img src="${this.icon.taler}">${d.price}</span><span class="own">${d.type === 'equip' ? 'Ausrüstung' : 'im Besitz: ' + (s.inv[id] || 0)}</span></div>`;
+      const d = ITEMS[id]; const mul = this.G.shopPriceMul ? this.G.shopPriceMul() : 1; const price = Math.max(1, Math.round((d.price || 0) * mul));
+      const afford = s.coins >= price;
+      return `<div data-i="${i}" class="shop-row${i === this.shopSel ? ' sel' : ''}${afford ? '' : ' poor'}"><img src="${this.icon[id]}"><div><b>${d.name}</b><p>${d.desc}</p></div><span class="price"><img src="${this.icon.taler}">${price}</span><span class="own">${d.type === 'equip' ? 'Ausrüstung' : 'im Besitz: ' + (s.inv[id] || 0)}</span></div>`;
     }).join('') + `<div class="purse"><img src="${this.icon.taler}"> ${s.coins} Taler</div>`;
   }
 
@@ -241,16 +259,31 @@ export class UI {
       const k = rows[this.optSel][2], lr = { ArrowLeft: -1, KeyA: -1, ArrowRight: 1, KeyD: 1 }[code];
       const act = code === 'KeyE' || code === 'Enter' || code === 'Space';
       if (k === 'close' && act) { this.close(); return true; }
-      if (k === 'touch' && (act || lr)) { this.G.touchCycle && this.G.touchCycle(); this.G.sfx('select'); this.render(); return true; }
+      if (k === 'touch' && (act || lr)) { this.G.touchCycle && this.G.touchCycle(); }
+      if (k === 'stick' && (act || lr)) { this.G.stickCycle && this.G.stickCycle(); }
+      if (k === 'btns' && (act || lr)) { this.G.btnCycle && this.G.btnCycle(); }
+      if (k === 'mute' && (act || lr)) A.setSettings({ mute: !A.settings.mute });
+      if (k === 'stereoPan' && (act || lr)) A.setSettings({ stereoPan: A.settings.stereoPan === false });
       if ((k === 'music' || k === 'sfx') && (act || lr)) A.setSettings({ [k]: !A.settings[k] });
-      if ((k === 'musicVol' || k === 'sfxVol') && (lr || act)) A.setSettings({ [k]: Math.max(0, Math.min(1, Math.round((A.settings[k] + (lr || 1) * 0.1) * 10) / 10)) });
-      if (act || lr) { this.G.sfx('select'); this.G.markDirty(); }
+      if ((k === 'musicVol' || k === 'sfxVol' || k === 'uiVol') && (lr || act)) {
+        const key = k === 'uiVol' ? 'uiVol' : k;
+        const cur = A.settings[key] ?? 0.7;
+        A.setSettings({ [key]: Math.max(0, Math.min(1, Math.round((cur + (lr || 1) * 0.1) * 10) / 10)) });
+      }
+      if (['vibrate','enemyHp','bigText','colorblind','performance'].includes(k) && (act || lr)) { this.G.toggleSetting && this.G.toggleSetting(k); }
+      if (k === 'slot' && (act || lr)) { this.G.cycleSlot && this.G.cycleSlot(lr || 1); }
+      if (k === 'delsave' && act) { this.G.deleteSlot && this.G.deleteSlot(); }
+      if (k === 'seed' && act) { this.G.copySeed && this.G.copySeed(); }
+      if (act || lr) { this.G.sfx('select'); this.G.markDirty && this.G.markDirty(); }
       this.render(); return true;
     }
     if (m === 'inv') {
       const d = { ArrowLeft: -1, KeyA: -1, ArrowRight: 1, KeyD: 1, ArrowUp: -COLS, KeyW: -COLS, ArrowDown: COLS, KeyS: COLS }[code];
       if (d) { this.sel = (this.sel + d + SLOTS) % SLOTS; this.G.sfx('select'); this.render(); return true; }
       if (code === 'KeyE' || code === 'Enter' || code === 'Space') { const id = this.items()[this.sel]; if (id) this.G.useItem(id); this.render(); return true; }
+      if (code === 'KeyF') { this.G.cycleInvFilter && this.G.cycleInvFilter(); this.render(); return true; }
+      if (code === 'KeyS' && !(code)) { /* sort via hold */ }
+      if (code === 'KeyO') { this.G.cycleInvSort && this.G.cycleInvSort(); this.render(); return true; }
     } else if (m === 'shop') {
       const d = { ArrowUp: -1, KeyW: -1, ArrowDown: 1, KeyS: 1 }[code];
       const L = this.shopItems();

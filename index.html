@@ -192,12 +192,48 @@
     @media (max-height: 460px) { body.touch .window { font-size: 12px; padding: 8px 12px; } body.touch .window h2 { font-size: 15px; margin-bottom: 6px; } body.touch .inv-top { gap: 10px; } }
     #rotate-hint { top: calc(80px + env(safe-area-inset-top)); left: 50%; transform: translateX(-50%); font-size: 12px; color: #ffe14d; display: none; text-align: center; pointer-events: auto; z-index: 6; }
     body.touch.portrait #rotate-hint:not(.gone) { display: block; }
+
+    /* v100: Hilfe einzeilig / schmal */
+    #help { max-width: min(92vw, 720px); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    @media (max-width: 1024px) {
+      #help { font-size: 11px; padding: 4px 8px; bottom: 8px; left: 8px; }
+    }
+    body.big-text #dialog, body.big-text .window, body.big-text #help { font-size: 18px; }
+    body.big-text #dialog .dlg-text { font-size: 18px; }
+    body.colorblind #bossbar .bb-fill { background: #5ab4ff !important; }
+    body.colorblind .bb-ghost { background: #888 !important; }
+    body.colorblind #hearts { filter: hue-rotate(180deg) saturate(1.2); }
+    body.perf .toast { transition: none; }
+    .hotbar-row { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+    .hotbar-row .hb { display: inline-flex; align-items: center; gap: 2px; padding: 2px 4px; border: 2px solid #5a4648; background: #3a2a30; }
+    .hotbar-row .hb.on { border-color: #ffe14d; }
+    .hotbar-row img { width: 18px; height: 18px; image-rendering: pixelated; }
+    #combo { position: fixed; left: 50%; top: 22%; transform: translateX(-50%); font: bold 22px ui-monospace, monospace;
+      color: #ffe14d; text-shadow: 2px 2px 0 #20161a; pointer-events: none; opacity: 0; transition: opacity 0.2s; z-index: 8; }
+    #combo.show { opacity: 1; }
+    #loadbar { position: fixed; inset: 0; background: #14100f; display: flex; flex-direction: column; align-items: center; justify-content: center;
+      z-index: 100; color: #f7eedc; font: bold 14px ui-monospace, monospace; }
+    #loadbar .bar { width: min(280px, 70vw); height: 14px; border: 3px solid #f7eedc; background: #20161a; margin-top: 12px; }
+    #loadbar .fill { height: 100%; width: 0%; background: #ffe14d; transition: width 0.2s; }
+    #loadbar.hidden { display: none; }
+    #errpage { position: fixed; inset: 0; background: #20161a; color: #f7eedc; z-index: 200; display: none; padding: 24px;
+      font: 14px/1.5 ui-monospace, monospace; }
+    #errpage.show { display: block; }
+    #errpage h1 { color: #ffe14d; }
+    body.dpad #touch .t-knob { border-radius: 0; }
+    /* a97 focus */
+    .window .opt-row:focus, .window .slot:focus, .dlg-choices div:focus, .win-close:focus {
+      outline: 2px solid #ffe14d; outline-offset: 2px; }
+    #hud-v100 { font-size: 11px; color: #cfc2a8; margin-top: 2px; }
   </style>
 </head>
 <body>
+  <div id="loadbar"><div>Pixel World lädt …</div><div class="bar"><div class="fill" id="loadfill"></div></div><small id="loadmsg">Kacheln backen</small></div>
+  <div id="errpage"><h1>Etwas ging schief</h1><p id="errmsg"></p><p>Tipp: Hard-Reload (Ctrl+Shift+R). Audio oft erst nach erstem Tippen.</p><p><a href="./index.html" style="color:#ffe14d">Neu laden</a></p></div>
   <canvas id="game"></canvas>
+  <div id="combo"></div>
   <div id="hud" class="panel"><div id="hud-stats"><canvas id="hearts" width="84" height="24"></canvas><div id="purse"><img id="coin-icon" alt=""><span id="coins">0</span></div></div><div id="hud-place">…</div><div id="hud-coords"></div><div id="hud-title" class="hidden"></div></div>
-  <div id="help" class="panel"><b>WASD/Pfeile</b> laufen · <b>Shift</b> rennen · <b>E</b> sprechen/benutzen · <b>J/Leertaste</b> Schwert · <b>I</b> Inventar · <b>Q</b> Quests · <b>M</b> Karte · <b>T</b> Tageszeit · <b>P</b> Optionen · <b>N</b>/<b>B</b> Musik/Effekte</div>
+  <div id="help" class="panel"><b>WASD</b> · <b>E</b> · <b>J</b> · <b>K</b> Ausweichen · <b>C</b> Waffe · <b>I/Q/P</b> · <b>F9</b> Screenshot</div>
   <div id="minimap" class="panel hidden"><canvas id="minimap-canvas"></canvas></div>
   <div id="prompt" class="panel hidden"><b>E</b> – ansehen</div>
   <div id="dialog" class="panel hidden"><div class="dlg-name"></div><div class="dlg-text"></div><div class="dlg-choices hidden"></div><div class="dlg-more"></div></div>
@@ -213,6 +249,31 @@
   <div id="bossbar" class="panel hidden"></div>
   <div id="cine" class="hidden"><div class="cine-title"></div><div class="cine-text panel"></div><div class="cine-hint"></div></div>
   <div id="credits" class="hidden"><div class="cr-stars"></div><div class="cr-roll"></div><div class="cr-end">E – weiter ins freie Spiel</div></div>
+  
+  <script>
+    window.__pwProgress = (p, msg) => {
+      const f = document.getElementById('loadfill');
+      const m = document.getElementById('loadmsg');
+      if (f) f.style.width = Math.round(p * 100) + '%';
+      if (m && msg) m.textContent = msg;
+      if (p >= 1) setTimeout(() => document.getElementById('loadbar')?.classList.add('hidden'), 200);
+    };
+    window.addEventListener('error', (e) => {
+      const ep = document.getElementById('errpage');
+      const em = document.getElementById('errmsg');
+      if (ep && em) { em.textContent = (e.message || 'Unbekannter Fehler') + (e.filename ? ' @ ' + e.filename : ''); ep.classList.add('show'); }
+    });
+    window.addEventListener('unhandledrejection', (e) => {
+      const ep = document.getElementById('errpage');
+      const em = document.getElementById('errmsg');
+      if (ep && em) { em.textContent = String(e.reason || e); ep.classList.add('show'); }
+    });
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('./sw.js').catch(() => {});
+    }
+    // iOS audio/fullscreen soft fixes
+    document.addEventListener('touchend', () => {}, { passive: true });
+  </script>
   <script type="module" src="src/main.js"></script>
 </body>
 </html>

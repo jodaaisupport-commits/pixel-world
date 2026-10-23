@@ -1,0 +1,14 @@
+{
+  "id": "example-mod",
+  "name": "Beispiel-Mod",
+  "quests": {
+    "briefbote": {
+      "title": "Der Briefbote",
+      "giver": "Mod",
+      "desc": "Stelle einen Brief zu (Beispiel-Mod-Quest).",
+      "steps": ["Finde den Brief im Postkasten (M → Briefe).", "Sprich danach mit Oma Hilde."],
+      "reward": "10 Taler"
+    }
+  },
+  "dialogs": {}
+}

@@ -119,6 +119,8 @@ export function wueste() {
   m.interact.push({ x: 42, y: 11, text: 'Ein Marktstand voller Datteln, Gewürze und bunter Tücher. „Bitte drinnen bezahlen – Nuri“' });
   m.place('well', 55, 15, 2, 2);
   m.interact.push({ x: 55.5, y: 16, text: 'Ein tiefer Brunnen. Das Wasser ist eiskalt – mitten in der Wüste.' });
+  m.interact.push({ x: 54, y: 17, id: 'warp_oase', text: 'Warp-Stein der Oase. Nach Pixeldorf und Vulkaninsel.' });
+  m.interact.push({ x: 48, y: 14, id: 'mine_node', text: 'Ein Erzbrocken am Brunnenrand. Mit Werkzeug abbauen?' });
   for (const [x, y] of [[39, 13], [51, 13], [40, 18], [50, 18], [44, 11], [53, 19], [37, 16], [56, 12]]) placeNear(m, 'palm' + ((x + y) % 2), x, y, 1, 1, 0, (t) => t === T.GRASS || t === T.SAND || t === T.FLOWER);
   m.place('lamp', 47, 11); m.place('lamp', 43, 20);
   // Selmas Lager (ab Kapitel 2)

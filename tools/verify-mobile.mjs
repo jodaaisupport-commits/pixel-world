@@ -141,6 +141,13 @@ export async function runMobile({ browser, URL, OUT, check, devices }) {
   await touch(P.cdp, 'touchStart', [[st2.x, st2.y, 1]]); await touch(P.cdp, 'touchMove', [[st2.x, st2.y - 40, 1]]); await page.waitForTimeout(500); await touch(P.cdp, 'touchEnd', []);
   const y1 = await G(page, () => window.__game.player.y);
   check('Hochformat: Joystick nach oben bewegt die Figur', y0 - y1 > 10, { y0, y1 });
+  // (95) Touch-Gesten / Pause
+  const gest = await G(page, () => ({
+    pause: !!document.querySelector('#touch [data-k="pause"]'),
+    touchAction: getComputedStyle(document.body).touchAction,
+  }));
+  check('Touch: Pause-Button vorhanden', gest.pause, gest);
+  check('Touch: pinch/zoom via touch-action', /none/.test(gest.touchAction || ''), gest);
   await P.ctx.close();
   check('Mobil: Konsole fehlerfrei', problems.length === 0, problems);
 }

@@ -2,6 +2,8 @@
 // Knöpfe für Inventar, Questlog, Karte, Optionen, Rennen und Vollbild. Multi-Touch über Pointer-Events
 // (jeder Finger hat seine eigene pointerId). Die Knöpfe lösen dieselben Aktionen aus wie die Tastatur.
 const MODE_KEY = 'pixelworld.touch';
+const STICK_KEY = 'pixelworld.stick';
+const BTN_KEY = 'pixelworld.btns';
 const DEAD = 0.22, RUN = 0.82, RADIUS = 46; // Totzone, Rennschwelle (Anteil des Radius), Radius in CSS-Pixeln
 
 /** Kleine Pixel-Grafik als Canvas: Kreis-/Rundknopf mit Glyphe. */
@@ -43,6 +45,10 @@ export function createTouch({ onKey, isMenu }) {
   const detected = (mql && mql.matches) || 'ontouchstart' in window || navigator.maxTouchPoints > 0;
   let mode = 'auto';
   try { mode = localStorage.getItem(MODE_KEY) || 'auto'; } catch (e) { /* egal */ }
+  let stickMode = 'analog';
+  try { stickMode = localStorage.getItem(STICK_KEY) || 'analog'; } catch (e) {}
+  let btnMap = { A: 'interact', B: 'attack' };
+  try { btnMap = { ...btnMap, ...JSON.parse(localStorage.getItem(BTN_KEY) || '{}') }; } catch (e) {}
   const T = { dirs: { up: false, down: false, left: false, right: false, run: false }, moving: false, runLatch: false, vec: { x: 0, y: 0 } };
   const root = document.createElement('div'); root.id = 'touch';
   root.innerHTML = `
@@ -93,8 +99,15 @@ export function createTouch({ onKey, isMenu }) {
     const m = Math.min(1, l / RADIUS), d = T.dirs;
     T.vec.x = dx / RADIUS; T.vec.y = dy / RADIUS;
     if (m < DEAD) { d.up = d.down = d.left = d.right = false; d.run = T.runLatch; T.moving = false; return; }
-    const a = Math.atan2(dy, dx), oct = Math.round(a / (Math.PI / 4)); // 8 Richtungen
-    const vx = Math.round(Math.cos(oct * Math.PI / 4)), vy = Math.round(Math.sin(oct * Math.PI / 4));
+    let vx, vy;
+    if (stickMode === 'dpad') {
+      // 4-Wege D-Pad
+      vx = Math.abs(dx) >= Math.abs(dy) ? Math.sign(dx) : 0;
+      vy = Math.abs(dy) > Math.abs(dx) ? Math.sign(dy) : 0;
+    } else {
+      const a = Math.atan2(dy, dx), oct = Math.round(a / (Math.PI / 4));
+      vx = Math.round(Math.cos(oct * Math.PI / 4)); vy = Math.round(Math.sin(oct * Math.PI / 4));
+    }
     d.left = vx < 0; d.right = vx > 0; d.up = vy < 0; d.down = vy > 0;
     d.run = T.runLatch || m > RUN;
     T.moving = true;
@@ -123,7 +136,14 @@ export function createTouch({ onKey, isMenu }) {
       e.preventDefault(); e.stopPropagation(); onKey('__unlock');
       b.classList.add('down'); b.setPointerCapture?.(e.pointerId);
       const k = b.dataset.k;
-      if (k === 'B') onKey(isMenu() ? 'Escape' : 'KeyJ');
+      if (k === 'B' || k === 'A') {
+        if (isMenu() && k === 'B') onKey('Escape');
+        else {
+          const act = btnMap[k] || (k === 'A' ? 'interact' : 'attack');
+          const code = { interact: 'KeyE', attack: 'KeyJ', dodge: 'KeyK', use: 'Digit1', pause: 'KeyP' }[act] || 'KeyE';
+          onKey(code);
+        }
+      }
       else if (k === 'run') { T.runLatch = !T.runLatch; T.dirs.run = T.runLatch; b.style.backgroundImage = `url(${T.runLatch ? art.runOn : art.run})`; }
       else if (k === 'full') toggleFullscreen();
       else onKey(KEY[k]);
@@ -158,7 +178,14 @@ export function createTouch({ onKey, isMenu }) {
   };
   T.cycleMode = () => { mode = { auto: 'on', on: 'off', off: 'auto' }[mode]; try { localStorage.setItem(MODE_KEY, mode); } catch (e) { /* egal */ } T.apply(); };
   T.modeLabel = () => ({ auto: detected ? 'Auto (an)' : 'Auto (aus)', on: 'An', off: 'Aus' }[mode]);
+  T.cycleStick = () => { stickMode = stickMode === 'analog' ? 'dpad' : 'analog'; try { localStorage.setItem(STICK_KEY, stickMode); } catch (e) {} document.body.classList.toggle('dpad', stickMode === 'dpad'); return stickMode; };
+  T.stickLabel = () => stickMode === 'dpad' ? 'D-Pad' : 'Analog';
+  T.setButtons = (a, b) => { btnMap = { A: a || btnMap.A, B: b || btnMap.B }; try { localStorage.setItem(BTN_KEY, JSON.stringify(btnMap)); } catch (e) {} };
+  T.btnLabel = () => `A=${btnMap.A} B=${btnMap.B}`;
+  T.cycleButtons = () => { const opts = ['interact', 'attack', 'dodge', 'use']; const i = opts.indexOf(btnMap.A); btnMap.A = opts[(i + 1) % opts.length]; btnMap.B = btnMap.A === 'attack' ? 'interact' : 'attack'; try { localStorage.setItem(BTN_KEY, JSON.stringify(btnMap)); } catch (e) {} return T.btnLabel(); };
   T.release = releaseStick;
   T.apply();
+  document.body.classList.toggle('dpad', stickMode === 'dpad');
+  for (const ev of ['gesturestart', 'gesturechange', 'gestureend']) root.addEventListener(ev, (e) => e.preventDefault(), { passive: false });
   return T;
 }

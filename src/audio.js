@@ -5,7 +5,7 @@
 import { TRACKS, compileTrack } from './music.js';
 
 const SKEY = 'pixelworld.settings.v1';
-const DEFAULTS = { music: true, sfx: true, musicVol: 0.6, sfxVol: 0.8 };
+const DEFAULTS = { music: true, sfx: true, ui: true, musicVol: 0.6, sfxVol: 0.8, uiVol: 0.7, mute: false, stereoPan: true };
 const compiled = {};
 const getTrack = (id) => (compiled[id] ||= compileTrack(TRACKS[id]));
 
@@ -98,6 +98,13 @@ const SFX = {
   },
   swing(c, o, t, { long } = {}) { noise(c, o, { t, dur: long ? 0.2 : 0.15, vol: 0.12, type: 'bandpass', f: 900, f2: 4200, q: 2 }); if (long) tone(c, o, { inst: 'sine', freq: 1800, t, dur: 0.12, vol: 0.04, slide: 1.4 }); },
   hit(c, o, t) { tone(c, o, { inst: 'square', freq: 520, t, dur: 0.06, vol: 0.12, slide: 0.4 }); noise(c, o, { t, dur: 0.08, vol: 0.14, type: 'highpass', f: 2500 }); },
+  crit(c, o, t) { [880, 1320, 1760].forEach((f, i) => tone(c, o, { inst: 'pulse25', freq: f, t: t + i * 0.04, dur: 0.08, vol: 0.12 })); noise(c, o, { t, dur: 0.12, vol: 0.1, type: 'highpass', f: 4000 }); },
+  jingle(c, o, t) { [523, 659, 784, 1047].forEach((f, i) => tone(c, o, { inst: 'triangle', freq: f, t: t + i * 0.07, dur: 0.12, vol: 0.14 })); },
+  ambient(c, o, t, { kind = 'wind' } = {}) {
+    if (kind === 'waves') noise(c, o, { t, dur: 1.2, vol: 0.04, type: 'bandpass', f: 400, f2: 900, q: 1, a: 0.4 });
+    else if (kind === 'cave') { tone(c, o, { inst: 'sine', freq: 80, t, dur: 1.5, vol: 0.03, vib: 0.02 }); noise(c, o, { t, dur: 1.2, vol: 0.03, type: 'lowpass', f: 300, a: 0.5 }); }
+    else noise(c, o, { t, dur: 1.4, vol: 0.03, type: 'bandpass', f: 600, f2: 1200, q: 3, a: 0.5 });
+  },
   clink(c, o, t) { tone(c, o, { inst: 'square', freq: 1600, t, dur: 0.05, vol: 0.06 }); tone(c, o, { inst: 'triangle', freq: 2400, t: t + 0.02, dur: 0.12, vol: 0.06 }); },
   enemyDie(c, o, t) { [660, 520, 390, 260].forEach((f, i) => tone(c, o, { inst: 'pulse25', freq: f, t: t + i * 0.045, dur: 0.05, vol: 0.1 })); noise(c, o, { t, dur: 0.25, vol: 0.1, type: 'lowpass', f: 1800, f2: 300 }); },
   hurt(c, o, t) { tone(c, o, { inst: 'square', freq: 260, t, dur: 0.18, vol: 0.14, slide: 0.45 }); noise(c, o, { t, dur: 0.12, vol: 0.08, type: 'lowpass', f: 900 }); },
@@ -176,6 +183,7 @@ export class AudioEngine {
         this.master = c.createDynamicsCompressor(); this.master.threshold.value = -14; this.master.ratio.value = 4; this.master.connect(c.destination);
         this.musicBus = c.createGain(); this.musicBus.connect(this.master);
         this.sfxBus = c.createGain(); this.sfxBus.connect(this.master);
+        this.uiBus = c.createGain(); this.uiBus.connect(this.master);
         this.applySettings();
         this.timer = setInterval(() => this.tick(), 25);
         if (this.wanted) { const w = this.wanted; this.wanted = null; this.music(w); }
@@ -186,12 +194,15 @@ export class AudioEngine {
     } catch (e) { this.errors.push(String(e)); }
   }
   setSettings(patch) { Object.assign(this.settings, patch); this.applySettings(); this.persist(); }
+  toggleMute() { this.setSettings({ mute: !this.settings.mute }); return this.settings.mute; }
   persist() { try { localStorage.setItem(SKEY, JSON.stringify(this.settings)); } catch (e) { /* ignorieren */ } }
   applySettings() {
     if (!this.ctx) return;
     const s = this.settings, t = this.ctx.currentTime;
-    this.musicBus.gain.setTargetAtTime(s.music ? s.musicVol * 0.55 : 0, t, 0.08);
-    this.sfxBus.gain.setTargetAtTime(s.sfx ? s.sfxVol * 0.9 : 0, t, 0.03);
+    const mute = !!s.mute;
+    this.musicBus.gain.setTargetAtTime((!mute && s.music) ? s.musicVol * 0.55 : 0, t, 0.08);
+    this.sfxBus.gain.setTargetAtTime((!mute && s.sfx) ? s.sfxVol * 0.9 : 0, t, 0.03);
+    if (this.uiBus) this.uiBus.gain.setTargetAtTime((!mute && s.ui !== false) ? (s.uiVol ?? 0.7) * 0.85 : 0, t, 0.03);
   }
   /** Musik wechseln (mit Überblendung). */
   music(id, fade = 1.2) {
@@ -225,14 +236,27 @@ export class AudioEngine {
       if (done.length) this.voices = this.voices.filter((v) => !done.includes(v));
     } catch (e) { this.errors.push(String(e)); }
   }
+  setCombat(on) { this.combatBoost = !!on; if (this.ctx && this.musicBus) { const t = this.ctx.currentTime; const s = this.settings; const base = (!s.mute && s.music) ? s.musicVol * 0.55 : 0; this.musicBus.gain.setTargetAtTime(base * (on ? 1.25 : 1), t, 0.15); } }
   /** Soundeffekt abspielen. throttle = Mindestabstand in Sekunden. */
   sfx(name, opts = {}, throttle = 0) {
     this.played[name] = (this.played[name] || 0) + 1;
-    if (!this.ctx || !this.settings.sfx || !SFX[name]) return;
+    const uiNames = new Set(['blip', 'select', 'menu', 'confirm']);
+    const isUi = uiNames.has(name);
+    if (!this.ctx || !SFX[name]) return;
+    if (this.settings.mute) return;
+    if (isUi && this.settings.ui === false) return;
+    if (!isUi && !this.settings.sfx) return;
     const now = this.ctx.currentTime;
     if (throttle && this.last[name] && now - this.last[name] < throttle) return;
     this.last[name] = now;
-    try { SFX[name](this.ctx, this.sfxBus, now + 0.005, opts); } catch (e) { this.errors.push(String(e)); }
+    try {
+      let dest = isUi && this.uiBus ? this.uiBus : this.sfxBus;
+      if (this.settings.stereoPan && opts.pan != null && this.ctx.createStereoPanner) {
+        const p = this.ctx.createStereoPanner(); p.pan.value = Math.max(-1, Math.min(1, opts.pan));
+        p.connect(dest); dest = p;
+      }
+      SFX[name](this.ctx, dest, now + 0.005, opts);
+    } catch (e) { this.errors.push(String(e)); }
   }
   /** Track offline rendern (OfflineAudioContext) und als WAV (Base64) liefern. */
   async renderWav(id, seconds = 20, rate = 44100) {

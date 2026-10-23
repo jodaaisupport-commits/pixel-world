@@ -11,9 +11,9 @@ import { Dialog } from './dialog.js';
 import { buildExtraArt } from './tiles-extra.js';
 import { ITEMS, buildItemArt } from './items.js';
 import { Enemy, buildEnemyArt } from './enemies.js';
-import { questTalk, questMarker, QUESTS } from './quests.js';
+import { questTalk, questMarker, QUESTS, QUEST_ORDER } from './quests.js';
 import { UI } from './ui.js';
-import { newGameState, saveGame, loadGame, clearSave } from './save.js';
+import { newGameState, saveGame, loadGame, clearSave, currentSlot, setSlot, listSlots, clearSaveConfirm } from './save.js';
 import { AudioEngine, TRACK_NAMES } from './audio.js';
 import { Boss, buildBossArt, BOSS_NAME, BOSS_TITLE } from './boss.js';
 import { CHAPTERS, INTRO, OUTRO, CREDITS, MAIN_TITLE, storyTalk, storyMarker } from './story.js';
@@ -24,8 +24,10 @@ import { createArc2 } from './arc2.js';
 import { T } from './map.js';
 import { createTouch } from './touch.js';
 import { makeValueNoise, fbm } from './noise.js';
+import { installV100, EXTRA_ITEMS } from './v100/index.js';
 
 const $ = (id) => document.getElementById(id);
+window.__pwProgress?.(0.15, 'Canvas');
 const canvas = $('game');
 const ctx = canvas.getContext('2d');
 const buffer = document.createElement('canvas'); // Low-Res-Puffer (1 Pixel = 1 Art-Pixel)
@@ -41,6 +43,7 @@ const art = buildArt();
 buildExtraArt(art);
 buildStoryArt(art);
 buildArc2Art(art);
+Object.assign(ITEMS, EXTRA_ITEMS);
 const itemArt = buildItemArt();
 const bossArt = buildBossArt();
 const audio = new AudioEngine();
@@ -53,7 +56,7 @@ const saved = loadGame();
 /** Spielstand: Herzen (in halben Herzen), Taler, Inventar, Ausrüstung, Quests, Welt-Flags. */
 const game = newGameState();
 if (saved) {
-  for (const k of ['hp', 'maxHp', 'coins', 'inv', 'weapon', 'lamp', 'boots', 'hook', 'grip', 'quests', 'taken', 'opened', 'story', 'title']) if (saved[k] !== undefined && saved[k] !== null) game[k] = saved[k];
+  for (const k of ['hp', 'maxHp', 'coins', 'inv', 'weapon', 'lamp', 'boots', 'hook', 'grip', 'quests', 'taken', 'opened', 'story', 'title', 'shield', 'combo', 'status', 'hotbar', 'hotbarSel', 'collect', 'warps', 'journal', 'mail', 'rep', 'friend', 'lore', 'farm', 'fish', 'equipSlots', 'durability', 'keyring', 'recipesKnown', 'unlockedWeapons', 'skin', 'checkpoint', 'companion', 'partner', 'choices', 'weather', 'dayTime', 'stamina', 'mount', 'boat', 'ore']) if (saved[k] !== undefined && saved[k] !== null) game[k] = saved[k];
   if (!game.story || typeof game.story.ch !== 'number') game.story = { ch: 1, flags: {} }; // alter Spielstand ohne Geschichte
   if (typeof game.story.ch2 !== 'number') game.story.ch2 = 0; // Spielstand vor der zweiten Geschichte
   game.story.flags ||= {};
@@ -151,7 +154,8 @@ const G = {
   completeQuest(id, rewards = []) {
     game.quests[id] = 'done';
     ui.banner('Quest abgeschlossen', QUESTS[id].title, rewards, 'Belohnung erhalten');
-    audio.sfx('fanfare');
+    audio.sfx('fanfare'); audio.sfx('jingle');
+    vapi.addJournal?.('Quest', QUESTS[id]?.title || id);
     saveNow();
   },
   useItem(id) {
@@ -165,13 +169,15 @@ const G = {
   },
   buy(id) {
     const d = ITEMS[id];
-    if (game.coins < d.price) { ui.toast('Nicht genug Taler!'); return; }
+    const price = Math.max(1, Math.round((d.price || 0) * (G.shopPriceMul ? G.shopPriceMul() : 1)));
+    if (game.coins < price) { ui.toast('Nicht genug Taler!'); return; }
     if (d.type === 'equip' && game[TOOL_FLAG[d.slot]]) { ui.toast('Das hast du schon.'); return; }
-    game.coins -= d.price;
+    game.coins -= price;
     audio.sfx('buy');
-    if (d.type === 'equip') { G.equip(id); ui.toast(`Gekauft: ${d.name} (−${d.price} Taler)`, id); G.markDirty(); return; }
+    if (d.type === 'equip') { G.equip(id); ui.toast(`Gekauft: ${d.name} (−${price} Taler)`, id); G.markDirty(); return; }
     game.inv[id] = count(id) + 1;
-    ui.toast(`Gekauft: ${d.name} (−${d.price} Taler)`, id);
+    ui.toast(`Gekauft: ${d.name} (−${price} Taler)`, id);
+    vapi.adjustRep?.(state.scene?.id === 'oase_laden' ? 'nuri' : 'anton', 0.5);
     G.markDirty();
   },
   openShop() { stopInput(); ui.toggle('shop'); },
@@ -190,6 +196,68 @@ const G = {
 };
 const TOOL_FLAG = { boots: 'boots', hook: 'hook', grip: 'grip' };
 const ui = new UI(itemArt, G);
+
+// ---------------------------------------------------------------- v100 Erweiterungen
+const vapi = {
+  game, G, state, player, ui, audio, dialog, camera, canvas, TS,
+  ITEMS, QUESTS, QUEST_ORDER, NPC_DEFS, MAPS,
+  addFx, hurtPlayer, goTo, fadeTo: (...a) => fadeTo(...a), applyEquipment, bossEnv: null,
+  __game: null,
+};
+// forward decls filled after functions exist
+window.__pwProgress?.(0.7, 'v100');
+installV100(vapi);
+const v100 = vapi.v100;
+vapi.__game = null; // set after __game exists
+
+G.vsettings = () => state.settings || v100.settings;
+G.toggleSetting = (k) => {
+  const map = { vibrate: 'vibrate', enemyHp: 'showEnemyHp', bigText: 'bigText', colorblind: 'colorblind', performance: 'performance' };
+  const key = map[k] || k;
+  v100.settings[key] = !v100.settings[key];
+  vapi.saveSettings();
+  ui.toast(`${key}: ${v100.settings[key] ? 'an' : 'aus'}`);
+};
+G.stickLabel = () => touch.stickLabel?.() || 'Analog';
+G.stickCycle = () => { touch.cycleStick?.(); };
+G.btnLabel = () => touch.btnLabel?.() || 'A/B';
+G.btnCycle = () => touch.cycleButtons?.();
+G.listSlots = listSlots;
+G.currentSlot = currentSlot;
+G.cycleSlot = (dir) => {
+  const n = (currentSlot() + (dir > 0 ? 1 : 2)) % 3;
+  setSlot(n);
+  ui.toast(`Speicherplatz ${n + 1} – speichere oder lade neu (?slot=${n})`);
+};
+G.deleteSlot = () => {
+  if (clearSaveConfirm(currentSlot(), (msg) => confirm(msg))) ui.toast('Spielstand gelöscht');
+};
+G.seedLabel = () => String(params.get('seed') || state.seed || 'zufällig');
+G.copySeed = () => {
+  const s = G.seedLabel();
+  try { navigator.clipboard?.writeText(s); } catch (e) {}
+  ui.toast('Seed: ' + s);
+};
+G.filteredInv = () => vapi.filteredInv?.() || Object.keys(game.inv).filter((k) => game.inv[k] > 0);
+G.cycleInvFilter = () => {
+  const opts = ['all', 'use', 'quest', 'mat', 'equip'];
+  const i = opts.indexOf(game.invFilter || 'all');
+  game.invFilter = opts[(i + 1) % opts.length];
+  ui.toast('Filter: ' + game.invFilter);
+};
+G.cycleInvSort = () => {
+  game.invSort = game.invSort === 'got' ? 'name' : game.invSort === 'name' ? 'type' : 'got';
+  ui.toast('Sortierung: ' + game.invSort);
+};
+G.shopPriceMul = () => vapi.shopPriceMul?.(state.scene?.id === 'oase_laden' ? 'nuri' : 'anton') || 1;
+Object.assign(G, {
+  craft: (...a) => vapi.craft?.(...a),
+  startDodge: () => vapi.startDodge?.(),
+  cycleWeapon: () => vapi.cycleWeapon?.(),
+  openJournal: () => vapi.openJournal?.(),
+  fastTravel: (d) => vapi.fastTravel?.(d),
+});
+
 Object.defineProperty(player, 'hp', { get: () => game.hp });
 state.lastSave = 0;
 function saveNow() {
@@ -246,16 +314,26 @@ function updateCombat(sc, dt) {
         const r = e.hurt(weapon.dmg, player.x, player.y - 6);
         if (r === 'block') { addFx({ type: 'spark', x: e.x, y: e.y - 8 - (e.alt || 0), t: 0, dur: 0.15 }); audio.sfx('clink', {}, 0.05); }
         else if (r) {
+          const crit = vapi.rollCrit?.(game.weapon);
+          if (crit) { e.hurt?.(1, player.x, player.y); addFx({ type: 'sparkle', x: e.x, y: e.y - 10, t: 0, dur: 0.4 }); audio.sfx('crit', {}, 0.05); }
           addFx({ type: 'spark', x: e.x, y: e.y - 8 - (e.alt || 0), t: 0, dur: 0.22 });
           state.shake = 0.08;
           audio.sfx('hit', {}, 0.04);
+          vapi.onHitLanded?.(crit);
+          // status chance
+          if (Math.random() < 0.12) vapi.applyStatus?.(e, ['poison','frost','slow'][Math.floor(Math.random()*3)], 2.5);
         }
       }
       const b = sc.boss;
       if (b && state.fight && !player.atk.hit.has('boss') && overlap(box, b.box)) {
         player.atk.hit.add('boss');
         const r = b.hurt(weapon.dmg, bossEnv);
-        if (r === 'hit') { addFx({ type: 'spark', x: (box.x + box.w / 2 + b.x) / 2, y: b.y - 28, t: 0, dur: 0.25 }); state.shake = Math.max(state.shake, 0.1); }
+        if (r === 'hit') {
+          const crit = vapi.rollCrit?.(game.weapon);
+          if (crit) { b.hurt?.(1, bossEnv); addFx({ type: 'sparkle', x: b.x, y: b.y - 30, t: 0, dur: 0.4 }); audio.sfx('crit', {}, 0.05); vapi.onHitLanded?.(true); }
+          else vapi.onHitLanded?.(false);
+          addFx({ type: 'spark', x: (box.x + box.w / 2 + b.x) / 2, y: b.y - 28, t: 0, dur: 0.25 }); state.shake = Math.max(state.shake, 0.1);
+        }
         else if (r === 'block') addFx({ type: 'spark', x: b.x, y: b.y - 28, t: 0, dur: 0.15 });
       }
     }
@@ -302,12 +380,16 @@ function drawShots(sc) {
   }
 }
 function hurtPlayer(dmg, from) {
+  if (vapi.tryBlock?.(from.x, from.y)) { player.inv = 0.4; return; }
+  // armor reduces
+  if (game.equipSlots?.armor) dmg = Math.max(1, dmg - 1);
   game.hp = Math.max(0, game.hp - dmg);
   player.knockback(from.x, from.y);
   player.inv = 1.0;
   player.atk = null;
   state.shake = 0.15;
   ui.pulse();
+  vapi.vibrate?.(55);
   if (from instanceof Enemy) { from.state = 'retreat'; from.timer = 0.6; }
   audio.sfx('hurt', {}, 0.1);
   addFx({ type: 'hit', x: player.x, y: player.y - 10, t: 0, dur: 0.25 });
@@ -459,8 +541,10 @@ function enterScene(id, tx, ty, dir, opts = {}) {
   // Gegner erscheinen bei jedem Betreten neu, Beute verschwindet
   sc.enemies = sc.map.enemies.map((e) => new Enemy(e, enemyArt));
   sc.drops = []; sc.fx = []; sc.eshots = [];
-  player.atk = null; player.kbt = 0;
+  player.atk = null; player.kbt = 0; player.kbx = player.kby = 0; // (14) Knockback-Cancel
   refreshFlags(sc);
+  if (id === 'village' || id === 'oase') vapi.setCheckpoint?.(id, (tx ?? player.x/TS), (ty ?? player.y/TS), dir || 'down');
+  if (!opts.silent) vapi.maybeHomescreenTip?.();
   const bc = BOSSES[id];
   sc.boss = bc && !game.story.flags[bc.done] ? bc.make() : null;
   state.fight = false; ui.bossBar(null);
@@ -537,13 +621,14 @@ function handleKey(code, rep = false) {
   else if (code === 'KeyB') { audio.setSettings({ sfx: !audio.settings.sfx }); ui.toast(`Soundeffekte: ${audio.settings.sfx ? 'an' : 'aus'}`); }
   else if (code === 'KeyP' || code === 'Escape') { stopInput(); ui.toggle('options'); }
   else if (code === 'KeyM') miniWrap.classList.toggle('hidden');
-  else if (code === 'KeyT') state.tint = (state.tint + 1) % 3;
+  else if (code === 'KeyT') { state.tint = (state.tint + 1) % 3; game._manualTint = true; }
   else if (state.fade || state.dying) return;
   else if (code === 'KeyE' || code === 'Enter') interact();
   else if (code === 'Space') { if (findTarget()) interact(); else attack(); }
   else if (code === 'KeyJ') attack();
   else if (code === 'KeyI' || code === 'Tab') { stopInput(); ui.toggle('inv'); }
   else if (code === 'KeyQ') { stopInput(); ui.toggle('quests'); }
+  else if (vapi.handleV100Key?.(code)) return;
   else if (code === 'Equal' || code === 'NumpadAdd') { manualZoom = true; scale = Math.min(6, scale + 1); resize(); }
   else if (code === 'Minus' || code === 'NumpadSubtract') { manualZoom = true; scale = Math.max(2, scale - 1); resize(); }
 }
@@ -553,11 +638,29 @@ window.addEventListener('blur', () => { stopInput(); touch.release(); });
 const isMenu = () => !!(ui.open || dialog.open || state.cine || state.credits);
 const touch = createTouch({ onKey: (c) => { if (c === '__unlock') audio.unlock(); else handleKey(c); }, isMenu });
 G.isTouch = () => touch.active;
+
+function updateHelpBanner() {
+  const el = $('help');
+  if (!el) return;
+  if (G.isTouch?.()) {
+    el.innerHTML = '<b>Joystick</b> laufen · <b>A</b> sprechen · <b>B</b> angreifen · Pause oben rechts';
+  } else {
+    el.innerHTML = '<b>WASD</b> · <b>E</b> · <b>J</b> Schwert · <b>K</b> Ausweichen · <b>C</b> Waffe · <b>F</b> Schnellreise · <b>I/Q/P</b> · <b>1–4</b> Hotbar · <b>F9</b> Screenshot';
+  }
+}
+
 G.touchLabel = () => touch.modeLabel();
 G.touchCycle = () => { touch.cycleMode(); resize(); };
 // Tippen auf das Bild: Zwischensequenz/Abspann/Dialog weiter (wie E)
 canvas.addEventListener('pointerdown', (e) => { e.preventDefault(); audio.unlock(); if (state.credits || state.cine || dialog.open) handleKey('KeyE'); });
-for (const id of ['cine', 'credits']) $(id).addEventListener('pointerdown', (e) => { e.preventDefault(); audio.unlock(); handleKey('KeyE'); });
+let cineTap = 0;
+for (const id of ['cine', 'credits']) $(id).addEventListener('pointerdown', (e) => {
+  e.preventDefault(); audio.unlock();
+  const now = performance.now();
+  if (state.cine && now - cineTap < 350) handleKey('Escape'); // Doppeltippen = überspringen (1)
+  else handleKey('KeyE');
+  cineTap = now;
+});
 $('dialog').addEventListener('click', (e) => {
   const opt = e.target.closest('[data-i]');
   if (opt && dialog.choosing) { dialog.sel = +opt.dataset.i; dialog.render(); }
@@ -566,7 +669,10 @@ $('dialog').addEventListener('click', (e) => {
 window.addEventListener('touchend', () => audio.unlock(), { passive: true });
 document.addEventListener('contextmenu', (e) => e.preventDefault());
 document.addEventListener('gesturestart', (e) => e.preventDefault());
-{ const h = $('rotate-hint'); h.addEventListener('pointerdown', () => h.classList.add('gone')); setTimeout(() => h.classList.add('gone'), 9000); }
+{ const h = $('rotate-hint');
+  if (v100.settings.landscapeHintSeen || v100.settings.rotateDismissed) h.classList.add('gone');
+  h.addEventListener('pointerdown', () => { h.classList.add('gone'); v100.settings.landscapeHintSeen = true; v100.settings.rotateDismissed = true; vapi.saveSettings(); });
+  setTimeout(() => { h.classList.add('gone'); if (!v100.settings.landscapeHintSeen) { v100.settings.landscapeHintSeen = true; vapi.saveSettings(); } }, 9000); }
 const tin = { up: false, down: false, left: false, right: false, run: false };
 /** Tastatur + Joystick zusammenführen (ohne Allokation pro Frame). */
 function mergedInput() {
@@ -602,12 +708,18 @@ function findTarget() {
   return it;
 }
 function interact() {
+  if (player.fishing) { if (vapi.reelFish?.()) return; }
   const t = findTarget();
   if (!t) return;
   if (t.type === 'npc') {
     const n = t.npc;
     n.talking = true;
     n.facePlayer(player);
+    // v100: translator, gift, post-boss, inventory comment
+    if (n.id === 'runen') {
+      dialog.show('Runen-Übersetzer', [vapi.translateRune?.('ᚠᚢᚦ Licht') || 'Die Runen flüstern vom Licht unter dem Stein.']);
+      n.talking = false; return;
+    }
     let st = storyTalk(n.id, G, game.story);
     const s2 = arc2.talk(n.id);
     if (s2 && (s2.override || !st)) st = s2;
@@ -615,9 +727,58 @@ function interact() {
     const qt = st && st.override ? st.override : questTalk(n.id, G);
     let pages = qt ? qt.pages : n.pages(state);
     if (st && st.prefix) pages = [...st.prefix, ...pages];
-    dialog.show(n.name, pages, () => { n.talking = false; if (st && st.prefix && st.onClose) st.onClose(); if (qt && qt.onClose) qt.onClose(); }, (qt && qt.choice) || null);
+    const react = vapi.maybePostBossReaction?.(n.id);
+    if (react) pages = [react, ...pages];
+    const comment = vapi.npcCommentInventory?.(n.id);
+    if (comment && Math.random() < 0.35) pages = [...pages, comment];
+    // Crafting stations
+    let choice = (qt && qt.choice) || null;
+    if (n.id === 'bruno' && !choice) {
+      choice = { options: ['Schmieden (Speer/Bogen/Schild)', 'Erz verkaufen', 'Nur plaudern'], onSelect: (i) => {
+        if (i === 0) { vapi.knowRecipe?.('speer'); vapi.knowRecipe?.('bogen'); vapi.knowRecipe?.('schild'); dialog.show('Bruno', ['Was soll ich schmieden?'], null, { options: ['Speer', 'Bogen', 'Schild', 'Abbrechen'], onSelect: (j) => { if (j < 3) vapi.craft?.(['speer','bogen','schild'][j]); } }); }
+        else if (i === 1) vapi.sellOreToBruno?.();
+      }};
+    }
+    if (n.id === 'mira' && !choice) {
+      choice = { options: ['Tränke brauen', 'Nur plaudern'], onSelect: (i) => { if (i === 0) vapi.craft?.('heiltrank'); } };
+    }
+    if (n.id === 'hilde' && !choice) {
+      choice = { options: ['Saatgut / Beet', 'Geschenk geben', 'Nur plaudern'], onSelect: (i) => {
+        if (i === 0) { vapi.knowRecipe?.('saat'); vapi.craft?.('saat'); ui.toast('Beet hinterm Haus – mit E säen'); }
+        else if (i === 1) { const id = Object.keys(game.inv).find((k) => game.inv[k] > 0); if (id) vapi.giftNpc?.('hilde', id); }
+      }};
+    }
+    if (n.id === 'lina' && !game.hideSeek && !choice) {
+      choice = { options: ['Versteckspiel!', 'Später'], onSelect: (i) => { if (i === 0) vapi.startHideSeek?.(); } };
+    }
+    if (n.id === 'selma' && (game.story?.ch2 || 0) >= 1 && (game.story?.ch2 || 0) <= 3) {
+      pages = [...pages, 'Soll ich dich ein Stück begleiten?'];
+      choice = choice || { options: ['Ja, komm mit!', 'Allein weiter'], onSelect: (i) => vapi.setCompanion?.(i === 0 ? 'selma' : null) };
+    }
+    // (56) Konflikt nur wenn kein anderes Choice-Menü (z. B. Laden)
+    if (!choice) {
+      const conflict = vapi.npcConflictHint?.(n.id);
+      if (conflict) { pages = [...(conflict.pages || []), ...pages]; choice = conflict.choice; }
+    }
+    dialog.show(n.name, pages, () => { n.talking = false; if (st && st.prefix && st.onClose) st.onClose(); if (qt && qt.onClose) qt.onClose(); }, choice);
   } else if (t.type === 'door') { audio.sfx('door'); goTo(t.exit.to, t.exit.tx, t.exit.ty, t.exit.dir); }
   else if (t.type === 'chest') openChest(t.chest);
+  else if (t.item?.id === 'siegel' && game.story?.flags?.rematch_ready && game.story?.flags?.boss_done) {
+    dialog.show(null, ['Das Siegel flackert. Umbrakor noch einmal herausfordern?'], null, {
+      options: ['Rematch!', 'Lieber nicht'],
+      onSelect: (i) => {
+        if (i === 0) {
+          setFlag('boss_done', false); setFlag('arena_lock', false);
+          const bc = BOSSES[state.scene.id];
+          if (bc) { state.scene.boss = bc.make(); bc.intro(); }
+        }
+      },
+    });
+  }
+  else if (t.item?.id === 'dive_grotte') {
+    dialog.show(null, ['Du tauchst hinab …'], () => goTo('grotte', 10, 14, 'up'));
+  }
+  else if (t.item && vapi.handleV100Interact?.(t.item)) { /* handled */ }
   else if (!(t.item.id && (storyInteract(t.item) || arc2.interact(t.item)))) dialog.show(null, t.item.text);
 }
 
@@ -649,7 +810,7 @@ resize();
 // ---------------------------------------------------------------- Partikel
 function updateParticles(dt) {
   const sc = state.scene, kind = sc.map.ambience.particles, cam = camera;
-  if (!kind) return;
+  if (!kind || v100?.settings?.performance) { if (sc.particles) sc.particles.length = 0; return; }
   const P = sc.particles;
   const want = { fireflies: 36, snow: 90, dust: 40, gulls: 4, sand: 70, glitter: 40, bubbles: 30 }[kind] || 0;
   const rnd = Math.random;
@@ -778,6 +939,10 @@ function render(time) {
   if (!state.cine) drawMarkers(sc, time);
   lighting(time);
   drawFog(sc, time);
+  vapi.drawWeather?.(bctx, camera, time);
+  vapi.drawEnemyHp?.(sc, bctx, camera);
+  vapi.drawTraps?.(sc, bctx, camera);
+  vapi.drawCompanion?.(sc, bctx, camera);
   drawParticles();
   if (state.flash) {
     const k = state.flash.t / state.flash.dur;
@@ -818,7 +983,20 @@ function updateHud() {
     for (const e of sc.enemies) mctx.fillRect(Math.floor(e.x / TS), Math.floor((e.y - 3) / TS), 1, 1);
     mctx.fillStyle = '#ffd23f';
     for (const c of sc.map.chests) if (!game.opened[c.key]) mctx.fillRect(c.tx, c.ty, 1, 1);
-    mctx.fillStyle = '#ffe14d'; mctx.fillRect(tx - 1, ty - 1, 3, 3);
+      // (28) Quest-Ziele auf Minimap
+  try {
+    const qids = QUEST_ORDER.filter((id) => game.quests[id] === 'active');
+    for (const qid of qids) {
+      const q = QUESTS[qid];
+      const giver = q?.giver;
+      if (!giver) continue;
+      const npc = sc.npcs.find((n) => n.id === giver && !n.hidden);
+      if (!npc) continue;
+      mctx.fillStyle = '#5ab4ff';
+      mctx.fillRect(Math.floor(npc.x / TS) - 1, Math.floor(npc.y / TS) - 1, 3, 3);
+    }
+  } catch (e) {}
+  mctx.fillStyle = '#ffe14d'; mctx.fillRect(tx - 1, ty - 1, 3, 3);
     mctx.fillStyle = '#20161a'; mctx.fillRect(tx, ty, 1, 1);
   }
 }
@@ -1119,17 +1297,24 @@ async function bossIntro() {
   await runScript(async () => {
     const b = state.scene.boss, first = !game.story.flags.boss_seen;
     setFlag('arena_lock'); audio.sfx('thud'); state.shake = 0.5;
+    player.inv = Math.max(player.inv, 1.5); // (13) I-Frame Arena
+    // (11) Kamera fest auf Arena-Mitte
+    const ax = ARENA.cx, ay = ARENA.cy - 20;
     for (let i = 0; i < 8; i++) addFx({ type: 'poof', x: 14 * TS + Math.random() * 64, y: 21 * TS + 6, t: -i * 0.03, dur: 0.5 });
     state.musicOverride = null;
     await wait(0.5);
-    await pan(b.x, b.y - 30, first ? 1.4 : 0.6);
+    await pan(ax, ay, first ? 1.2 : 0.5);
+    state.cam = { x: ax, y: ay };
     await wait(first ? 0.6 : 0.2);
     b.state = 'intro'; b.eyeOpen = 1; b.eyeGlow = 1;
     audio.sfx('roar'); state.shake = 1.3; state.flash = { c: '255,60,140', t: 0, dur: 0.6 };
+    vapi.vibrate?.(80);
     ui.banner('Endgegner', BOSS_NAME, [], BOSS_TITLE, 'boss');
     state.fight = true; ui.bossBar(b, BOSS_NAME, BOSS_TITLE);
+    audio.setCombat?.(true);
     await wait(first ? 1.6 : 0.8);
     await panBack(first ? 0.8 : 0.4);
+    state.cam = null;
     setFlag('boss_seen');
     state.musicOverride = undefined;
     b.wake();
@@ -1148,6 +1333,8 @@ const bossEnv = {
   spawn: (type, x, y) => spawnEnemyAt(type, x, y),
   onPhase: (n) => {
     state.flash = { c: '255,120,220', t: 0, dur: 0.6 };
+    vapi.vibrate?.(100);
+    vapi.spawnArenaTrap?.(state.scene);
     BOSSES[state.scene.id].onPhase(n);
   },
   onStun: () => { const bc = BOSSES[state.scene.id]; if (bc.onStun) bc.onStun(); },
@@ -1187,6 +1374,9 @@ async function bossDefeated() {
   await fadeTo('village', 57.5, 32, 'down');
   state.cineMode = false; state.script = false; state.musicOverride = undefined;
   ui.banner('Hauptquest abgeschlossen', MAIN_TITLE, ['Herzcontainer', '100 Taler', 'Titel: Held von Pixeldorf'], 'Freies Spiel – die Welt gehört dir!', 'chapter');
+  game.story.flags.rematch_ready = true; vapi.runEpilog?.();
+  vapi.sendMail?.('Oma Hilde', 'Du hast es geschafft!', 'Komm bald auf einen Kuchen vorbei. Das ganze Dorf ist stolz auf dich.');
+  audio.sfx('jingle');
   audio.sfx('fanfare');
   saveNow();
 }
@@ -1198,6 +1388,8 @@ const arc2 = createArc2({
   shake: (s) => { state.shake = Math.max(state.shake, s); },
 });
 for (const [id, cfg] of Object.entries(arc2.bosses)) BOSSES[id] = { ...cfg, intro: () => arc2.bossIntro(cfg) };
+vapi.goTo = goTo; vapi.bossEnv = bossEnv; vapi.applyEquipment = applyEquipment;
+vapi.__game = window.__game;
 
 // ---------------------------------------------------------------- Loop
 let last = performance.now();
@@ -1218,6 +1410,7 @@ function frame(now) {
       state.dying = 0; player.inv = 0;
       const bc = BOSSES[sc.id];
       if (bc && (sc.id === 'tiefe' || state.fight)) { state.respawn = 'arena'; goTo(sc.id, bc.respawn[0], bc.respawn[1], 'up'); }
+      else if (game.checkpoint) { state.respawn = true; goTo(game.checkpoint.map, game.checkpoint.x, game.checkpoint.y, game.checkpoint.dir || 'down'); }
       else { state.respawn = true; goTo('village', 57.5, 32, 'down'); }
     }
   } else if (!ui.open) {
@@ -1228,12 +1421,28 @@ function frame(now) {
     else player.moving = false;
     for (const n of sc.npcs) n.update(dt, sc.map, player);
     if (!dialog.open && !state.cine) {
-      if (!state.script) { updateCombat(sc, dt); updatePickups(sc, dt); checkExits(); }
+      player.speedMul = 1;
+      if (!state.script) {
+        vapi.trySwim?.(sc.map); vapi.tryClimb?.(sc.map, inp);
+        if (player.onBoat) player.speedMul = Math.max(player.speedMul, 1.2);
+        updateCombat(sc, dt); updatePickups(sc, dt); checkExits();
+        vapi.updateTraps?.(sc, dt);
+      }
       if (sc.boss) { sc.boss.target = player; if (!state.script || sc.boss.state === 'dying') sc.boss.update(dt, bossEnv); }
       if (sc.boss && state.fight) ui.bossBar(sc.boss, BOSSES[sc.id].name, BOSSES[sc.id].title);
+      else audio.setCombat?.(false);
       storyUpdate(sc, dt);
+      if (sc.map) sc.map._night = state.tint === 2;
+      vapi.tickWorld?.(dt); vapi.tickStatus?.(dt); vapi.tickFarm?.(dt); vapi.tickTimedQuest?.(dt);
+      const ce = $("combo"); if (ce) { if (game.combo >= 2) { ce.textContent = "COMBO ×" + game.combo; ce.classList.add("show"); } else ce.classList.remove("show"); }
+      vapi.updateFishing?.(dt); vapi.updateCompanion?.(sc, dt); vapi.tickAmbient?.();
+      // dodge cooldown
+      if (player.dodgeCd > 0) player.dodgeCd -= dt;
+      if (player.dodgeT > 0) player.dodgeT -= dt;
     }
     updateFx(sc, dt);
+    // recycle fx into pool
+    for (const f of sc.fx) if (f.t >= f.dur) vapi.freeFx?.(f);
     footsteps();
   }
   if (state.flash) { state.flash.t += dt; if (state.flash.t >= state.flash.dur) state.flash = null; }
@@ -1262,6 +1471,9 @@ ui.updateHud();
 dialog.onBlip = (name) => audio.sfx('blip', { pitch: VOICE[name] || 1 }, 0.02);
 dialog.onSelect = () => audio.sfx('select');
 if (saved) ui.toast('Spielstand geladen.');
+window.__pwProgress?.(1, 'Fertig');
+vapi.maybeTutorial?.();
+audio.setSettings({ mute: !!v100.settings.mute, uiVol: v100.settings.uiVol ?? 0.7, stereoPan: v100.settings.stereoPan !== false });
 if (game.story.ch === 0) {
   if (params.get('nointro')) { game.story.ch = 1; chapterBanner(1); }
   else introSequence();
@@ -1296,6 +1508,8 @@ window.__game = {
   setFlag, storyCheck, arc2,
   setStory2(ch2, flags = {}) { game.story.ch2 = ch2; Object.assign(game.story.flags, flags); refreshFlags(state.scene); saveNow(); },
   get bossConfig() { return BOSSES[state.scene.id] || null; },
+  v100, vapi, MAPS,
+  get features() { return v100.status(); },
   fullMapDataURL(id) {
     const sc = id ? getScene(id) : state.scene;
     refreshFlags(sc);

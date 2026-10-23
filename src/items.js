@@ -212,11 +212,25 @@ export function buildItemArt() {
     karte: mapIcon().canvas(), dattel: dates().canvas(), sandlaeufer: bootsIcon().canvas(), enterhaken: hookIcon().canvas(),
     steigeisen: crampons().canvas(), sonnensplitter: shard('#fff1a6', '#ffffff', '#ffb83a').canvas(), frostsplitter: shard('#e0f8ff', '#ffffff', '#5ab8e8').canvas(),
     schiffsteer: tar().canvas(), wuestenrose: rose().canvas(), eiskristall: iceCrystal().canvas(), gezeitenperle: pearl().canvas(),
+    speer: swordPix('schwert').canvas(), bogen: (() => { const p = new Pix(16,16); p.rect(3,2,2,12,'#8a5a2a'); p.vline(12,3,12,'#cfc2a8'); p.hline(5,3,12,'#e8dcc2'); p.hline(5,12,12,'#e8dcc2'); return p.outlined('#20161a').canvas(); })(),
+    schild: (() => { const p = new Pix(16,16); p.ellipse(8,9,6,7,'#8a6a3a'); p.ellipse(8,9,4,5,'#c9a86a'); p.vline(8,4,14,'#ffe14d'); return p.outlined('#20161a').canvas(); })(),
+    saat: (() => { const p = new Pix(16,16); for (const [x,y] of [[5,8],[8,6],[11,9],[7,11]]) p.ellipse(x,y,1.5,2,'#6a8a3a'); return p.outlined('#203010').canvas(); })(),
+    karotte: (() => { const p = new Pix(16,16); p.ellipse(8,10,3,5,'#e07030'); p.vline(8,3,6,'#5a8a2a'); return p.outlined('#401808').canvas(); })(),
+    muschel: (() => { const p = new Pix(16,16); p.ellipse(8,10,6,4,'#f0d8c0'); p.ellipse(8,9,4,3,'#fff6e8'); return p.outlined('#4a3020').canvas(); })(),
+    gluehpilz: (() => { const p = new Pix(16,16); p.ellipse(8,7,5,4,'#a0ff80'); p.rect(7,9,3,5,'#e8dcc2'); return p.outlined('#203010').canvas(); })(),
+    obsidian: ore('#1a1a22','#4a4a5a','#8a8aaa').canvas(),
+    perle: pearl().canvas(),
+    obsidianschwert: swordPix('kristallklinge').canvas(),
+    helm_leder: (() => { const p = new Pix(16,16); p.ellipse(8,8,6,5,'#8a5a2a'); return p.outlined('#20100a').canvas(); })(),
+    ruestung_leder: (() => { const p = new Pix(16,16); p.rect(4,4,8,10,'#8a5a2a'); return p.outlined('#20100a').canvas(); })(),
+    amulett_glueck: (() => { const p = new Pix(16,16); p.ellipse(8,10,3,3,'#ffe14d'); p.vline(8,3,8,'#cfc2a8'); return p.outlined('#402000').canvas(); })(),
+    skin_rot: (() => { const p = new Pix(16,16); p.rect(4,4,8,10,'#c8423a'); return p.outlined('#20161a').canvas(); })(),
+    skin_blau: (() => { const p = new Pix(16,16); p.rect(4,4,8,10,'#3a7ac8'); return p.outlined('#20161a').canvas(); })(),
   };
   return {
     icons,
     coinFrames: [0, 1, 2, 1].map((f) => coinIcon(f).canvas()),
     hearts: { full: heartIcon('full').canvas(), half: heartIcon('half').canvas(), empty: heartIcon('empty').canvas() },
-    sword: { schwert: swordPix('schwert', 6).canvas(), kristallklinge: swordPix('kristallklinge', 8).canvas() },
+    sword: { schwert: swordPix('schwert', 6).canvas(), kristallklinge: swordPix('kristallklinge', 8).canvas(), speer: swordPix('schwert', 9).canvas(), bogen: swordPix('schwert', 5).canvas(), obsidianschwert: swordPix('kristallklinge', 8).canvas() },
   };
 }

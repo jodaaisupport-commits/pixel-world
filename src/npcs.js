@@ -114,4 +114,13 @@ export const NPC_DEFS = {
       s.visited.has('eisgrotte') ? '… Du warst in der Grotte und bist noch nicht festgefroren? Hmpf. Respekt.' : 'Die Grotte im Norden ist kalt, glatt und voller Geister. Also genau wie ich. Hmpf.',
     ],
   },
+  runen: {
+    name: 'Runen-Übersetzer',
+    look: { h: '#4a3a6a', H: '#6a5a8a', s: '#d0b090', S: '#a88060', t: '#3a2a5a', T: '#2a1a4a', L: '#5a4a7a', extras: ['longhair', 'glasses', 'hat'], hat: '#2a2038', hatD: '#1a1424', hatBand: '#d9b8ff' },
+    pages: [
+      'Die alten Zeichen sprechen, wenn man ihnen zuhört. Die meisten hören nur Steine.',
+      'Bring mir Runen von Schreinen und Ruinen – ich übersetze sie dir.',
+      'ᚠᚢᚦ … das bedeutet „Licht unter dem Stein“. Oder „Stein unter dem Licht“. Grammatik war damals flexibel.',
+    ],
+  },
 };

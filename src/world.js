@@ -289,6 +289,10 @@ export function generateWorld(seed = DEFAULT_SEED) {
   // Brunnen auf dem Platz, Schild am Dorfeingang
   place('well', 57, 26, 2, 2);
   interact.push({ x: 57.5, y: 27, text: 'Ein alter Brunnen. Tief unten glitzert das Wasser.' });
+  interact.push({ x: 58.5, y: 28, id: 'warp_dorf', text: 'Ein ruhiger Warp-Stein am Brunnen. Nach Oase und Schreinen.' });
+  interact.push({ x: 48, y: 39, id: 'farm_plot', text: 'Oma Hildes Beet. Säen mit E, ernten wenn reif.' });
+  interact.push({ x: 44, y: 36, id: 'lore_hilde', text: 'Ein vergilbtes Rezeptbuch: „Kuchen heilt mehr als Schwerter.“' });
+  interact.push({ x: 72, y: 24, id: 'break_rock1', text: 'Ein brüchiger Felsen. Mit dem Schwert vielleicht…' });
   for (const [x, y, v] of [[53, 26, 0], [62, 26, 1], [53, 33, 1], [62, 33, 0]]) place('planter' + v, x, y);
   place('lamp', 55, 26); place('lamp', 60, 26); place('lamp', 52, 31); place('lamp', 64, 32);
   place('sign', 41, 27);
@@ -384,6 +388,7 @@ export function generateWorld(seed = DEFAULT_SEED) {
     { id: 'lina', x: 56, y: 31, mode: 'wander', home: [52, 29, 63, 34] },
     { id: 'jan', x: 18, y: 48, mode: 'stand', dir: 'down', hideIf: 'a2_jan_coast' },
     { id: 'selma', x: 12, y: 30, mode: 'stand', dir: 'right', showIf: 'a2_selma_here', hideIf: 'a2_selma_gone' },
+    { id: 'runen', x: 54, y: 28, mode: 'wander', home: [52, 26, 58, 30], speed: 10 },
   ];
   // Fischer steht am Ende des Stegs
   for (let y = H - 1; y > 36; y--) if (ground[idx(18, y)] === T.BRIDGE) { npcs[1].y = y - 1; break; }

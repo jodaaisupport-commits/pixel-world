@@ -277,7 +277,7 @@ export function kueste() {
   const sy = Math.round(shore(45));
   for (let y = sy - 1; y < sy + 6; y++) for (const x of [45, 46]) if (m.get(x, y) !== T.GRASS) m.set(x, y, T.BRIDGE);
   m.decal('boat', 47 * TS + 2, (sy + 3) * TS + 2);
-  m.interact.push({ x: 46, y: sy + 4, id: 'boot', text: 'Jans altes Ruderboot. Ein Leck, so groß wie eine Faust. Heute fährt hier niemand raus.' });
+  m.interact.push({ x: 46, y: sy + 4, id: 'boat', text: 'Jans altes Ruderboot. Mit E kannst du es selbst steuern (wenn abgedichtet).' });
   m.dock = { x: 46, y: sy + 4 };
   m.npcs.push({ id: 'jan', x: 45, y: sy + 5, mode: 'stand', dir: 'down', showIf: 'a2_jan_coast' });
   // Strandhütte, Sandburg, Palmen, Felsen, Seesterne
@@ -314,6 +314,9 @@ export function kueste() {
     if (t === T.SAND) return 'Möwenbucht – Strand';
     return 'Möwenbucht';
   };
+  // v100: Weg zur Vulkaninsel (Osten) + Tauchpunkt zur Unterwasser-Grotte
+  m.exit(W - 1, Math.max(2, Math.round(shore(W - 2)) - 3), 1, 5, 'vulkaninsel', 12, 22, 'left');
+  m.interact.push({ x: 30, y: Math.round(shore(30)) + 2, id: 'dive_grotte', text: 'Das Wasser ist hier merkwürdig klar und tief. Hinabtauchen?' });
   return m.finalize();
 }
 

@@ -56,6 +56,20 @@ export class NPC {
       return;
     }
     if (this.talking) { this.facePlayer(player); this.anim = 0; return; }
+    // (51/38) Nacht: NPCs gehen zur Home-Mitte und ruhen
+    if (map && map._night && this.home && this.mode === 'wander') {
+      const [x0, y0, x1, y1] = this.home;
+      const hx = ((x0 + x1) / 2) * 16 + 8, hy = ((y0 + y1) / 2) * 16 + 12;
+      const dx = hx - this.x, dy = hy - this.y;
+      if (Math.hypot(dx, dy) > 4) {
+        const step = this.speed * 0.7 * dt;
+        this.dir = Math.abs(dx) > Math.abs(dy) ? (dx < 0 ? 'left' : 'right') : (dy < 0 ? 'up' : 'down');
+        this.x += Math.sign(dx) * Math.min(step, Math.abs(dx));
+        this.y += Math.sign(dy) * Math.min(step, Math.abs(dy));
+        this.moving = true; this.anim += dt * 6; return;
+      }
+      this.dir = this.homeDir; this.moving = false; return;
+    }
     this.timer -= dt;
     if (this.mode === 'stand') {
       if (this.timer <= 0) { // ab und zu umschauen, dann zurück zur Grundhaltung
