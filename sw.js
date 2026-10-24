@@ -1,4 +1,4 @@
-const CACHE = 'pixel-world-v100';
+const CACHE = 'pixel-world-v101';
 const ASSETS = [
   './', './index.html', './manifest.webmanifest', './.nojekyll',
   './src/main.js', './icons/favicon-32.png', './icons/apple-touch-icon.png',

@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pixel World – Pixel-Art-Abenteuer im Browser</title>
+<meta name="description" content="Pixel World: ein kostenloses Top-Down-Pixel-Art-Abenteuer im Stil von Zelda und Stardew Valley – direkt im Browser und auf dem Handy spielbar.">
+<meta property="og:title" content="Pixel World">
+<meta property="og:description" content="Kostenloses Pixel-Art-Abenteuer im Browser & auf dem Handy.">
+<meta property="og:image" content="img/dorf.webp">
+<meta name="theme-color" content="#1b1a2e">
+<link rel="icon" href="../icons/icon-192.png">
+<style>
+:root{--bg:#1b1a2e;--bg2:#25233d;--card:#2e2b4a;--ink:#f4ecd8;--mute:#b9b0cf;--gold:#f6c453;--grass:#5fb04a;--red:#d9573b;--edge:#0d0c18;
+--mono:ui-monospace,"SFMono-Regular","Cascadia Mono","Consolas","Liberation Mono","DejaVu Sans Mono",monospace}
+*{box-sizing:border-box}html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.6 var(--mono);-webkit-font-smoothing:none}
+img{image-rendering:pixelated;max-width:100%;display:block}
+a{color:var(--gold)}
+.wrap{max-width:1120px;margin:0 auto;padding:0 20px}
+.px{border:4px solid var(--edge);box-shadow:0 0 0 4px var(--ink) inset,6px 6px 0 var(--edge);background:var(--card)}
+nav{position:sticky;top:0;z-index:5;background:rgba(27,26,46,.92);border-bottom:4px solid var(--edge)}
+nav .wrap{display:flex;gap:18px;align-items:center;height:56px}
+nav b{color:var(--gold);letter-spacing:2px;margin-right:auto}
+nav a{color:var(--ink);text-decoration:none;font-size:14px}nav a:hover{color:var(--gold)}
+@media(max-width:640px){nav a.opt{display:none}}
+.hero{position:relative;overflow:hidden;border-bottom:4px solid var(--edge)}
+.hero::before{content:"";position:absolute;inset:0;background:url(img/dorf.webp) center/cover;image-rendering:pixelated;filter:brightness(.45) saturate(1.1)}
+.hero .wrap{position:relative;padding:90px 20px 100px;text-align:center}
+h1{font-size:clamp(40px,9vw,88px);margin:0;line-height:1;color:var(--gold);letter-spacing:4px;text-shadow:4px 4px 0 var(--edge),-2px -2px 0 var(--red)}
+.tag{font-size:clamp(16px,2.6vw,21px);max-width:720px;margin:22px auto 34px;text-shadow:2px 2px 0 var(--edge)}
+.btn{display:inline-block;background:var(--grass);color:#fff;text-decoration:none;font-weight:700;font-size:22px;padding:16px 34px;border:4px solid var(--edge);box-shadow:0 -6px 0 rgba(0,0,0,.25) inset,6px 6px 0 var(--edge);letter-spacing:2px;transition:transform .08s}
+.btn:hover{transform:translate(-2px,-2px);box-shadow:0 -6px 0 rgba(0,0,0,.25) inset,8px 8px 0 var(--edge)}
+.btn:active{transform:translate(4px,4px);box-shadow:0 -6px 0 rgba(0,0,0,.25) inset,2px 2px 0 var(--edge)}
+.btn.alt{background:var(--card);font-size:16px;padding:12px 22px}
+.badges{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:28px}
+.badges span{background:var(--edge);padding:4px 10px;font-size:13px;color:var(--mute)}
+section{padding:70px 0}section:nth-of-type(even){background:var(--bg2)}
+h2{font-size:clamp(26px,4vw,36px);margin:0 0 28px;color:var(--gold);text-shadow:3px 3px 0 var(--edge)}
+h2::before{content:"▶ ";color:var(--red)}
+.grid{display:grid;gap:22px;grid-template-columns:repeat(auto-fit,minmax(300px,1fr))}
+.feat{padding:22px}.feat h3{margin:0 0 8px;font-size:18px}.feat .ico{font-size:30px}.feat p{margin:0;color:var(--mute);font-size:14px}
+.gallery{display:grid;gap:16px;grid-template-columns:repeat(auto-fill,minmax(260px,1fr))}
+.gallery button{all:unset;cursor:zoom-in;display:block}
+.gallery figure{margin:0;padding:6px}
+.gallery img{width:100%;aspect-ratio:16/9;object-fit:cover}
+.gallery figcaption{font-size:13px;padding:6px 4px 2px;color:var(--mute)}
+.gallery button:focus-visible figure,.gallery button:hover figure{outline:4px solid var(--gold)}
+table{border-collapse:collapse;width:100%;font-size:14px}td,th{padding:8px 12px;border-bottom:2px solid var(--edge);text-align:left}
+kbd{background:var(--ink);color:var(--edge);padding:1px 7px;border-bottom:3px solid #8a8398;font:inherit;font-weight:700;font-size:13px}
+.two{display:grid;gap:22px;grid-template-columns:repeat(auto-fit,minmax(300px,1fr))}.two>div{padding:20px}
+.cta{text-align:center}.cta p{color:var(--mute)}
+footer{border-top:4px solid var(--edge);padding:28px 0;font-size:13px;color:var(--mute);text-align:center}
+#lb{position:fixed;inset:0;background:rgba(10,9,20,.94);display:none;align-items:center;justify-content:center;z-index:20;flex-direction:column;padding:16px}
+#lb.open{display:flex}#lb img{max-height:82vh;width:auto;border:4px solid var(--ink)}
+#lb p{margin:12px 0 0}#lb .x,#lb .nv{position:absolute;background:var(--card);color:var(--ink);border:4px solid var(--edge);font:700 22px var(--mono);width:52px;height:52px;cursor:pointer}
+#lb .x{top:14px;right:14px}#lb .p{left:14px;top:50%}#lb .n{right:14px;top:50%}
+@media(min-width:1000px){.gallery{grid-template-columns:repeat(5,1fr)}}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}.btn{transition:none}}
+</style>
+</head>
+<body>
+<nav><div class="wrap"><b>PIXEL&nbsp;WORLD</b><a class="opt" href="#features">Features</a><a href="#bilder">Bilder</a><a class="opt" href="#steuerung">Steuerung</a><a href="../index.html">Spielen ▶</a></div></nav>
+
+<header class="hero"><div class="wrap">
+  <h1>PIXEL WORLD</h1>
+  <p class="tag">Ein Top-Down-Pixel-Art-Abenteuer im Stil von Zelda und Stardew Valley. Erkunde ein Dorf voller Geschichten, dunkle Wälder, Wüsten, Frostgipfel und eine Vulkaninsel – direkt im Browser und auf dem Handy. Kostenlos.</p>
+  <a class="btn" href="../index.html">▶ JETZT SPIELEN</a>
+  <div class="badges"><span>Kostenlos</span><span>Kein Download</span><span>Desktop &amp; Handy</span><span>Offline spielbar</span><span>Deutsch</span></div>
+</div></header>
+
+<main>
+<section id="features"><div class="wrap">
+  <h2>Was dich erwartet</h2>
+  <div class="grid">
+    <div class="feat px"><div class="ico">🗺️</div><h3>Viele Gebiete</h3><p>Dorf, Dunkelwald, Höhlen, Berge, Küste, Wüste mit Oase, Frosthöhen, Eisgrotte, Tempel, Vulkaninsel und Unterwasser-Grotte.</p></div>
+    <div class="feat px"><div class="ico">📜</div><h3>Story &amp; Bosse</h3><p>Zwei Kapitelbögen mit Zwischensequenzen, Splittern, Siegeln und mehrphasigen Bosskämpfen mit eigener Musik.</p></div>
+    <div class="feat px"><div class="ico">⚔️</div><h3>Kampf</h3><p>Schwertschläge, Ausweichrolle, Combos, kritische Treffer, Fallen und Gegner mit Lebensbalken.</p></div>
+    <div class="feat px"><div class="ico">💬</div><h3>NPCs &amp; Quests</h3><p>Dorfbewohner mit Tagesablauf, Entscheidungen, Läden, Questlog, Ruf-System und Nebenaufgaben wie Angeln und Gärtnern.</p></div>
+    <div class="feat px"><div class="ico">📱</div><h3>Touch &amp; Offline</h3><p>Virtueller Joystick, Multi-Touch, auf den Homescreen installierbar und dank Service Worker auch offline spielbar.</p></div>
+    <div class="feat px"><div class="ico">💾</div><h3>Komfort</h3><p>Mehrere Speicherstände, Minimap, große Schrift, Farbenblind-Modus und Mod-Unterstützung.</p></div>
+  </div>
+</div></section>
+
+<section id="bilder"><div class="wrap">
+  <h2>Screenshots</h2>
+  <div class="gallery" id="gal"></div>
+</div></section>
+
+<section id="steuerung"><div class="wrap">
+  <h2>Steuerung</h2>
+  <div class="two">
+    <div class="px"><h3>⌨️ Tastatur</h3><table>
+      <tr><td><kbd>WASD</kbd> / Pfeile</td><td>Laufen</td></tr>
+      <tr><td><kbd>E</kbd></td><td>Sprechen / Benutzen</td></tr>
+      <tr><td><kbd>J</kbd> / <kbd>Leertaste</kbd></td><td>Schwert</td></tr>
+      <tr><td><kbd>K</kbd></td><td>Ausweichen</td></tr>
+      <tr><td><kbd>I</kbd> · <kbd>Q</kbd> · <kbd>P</kbd></td><td>Inventar · Quests · Optionen</td></tr>
+    </table></div>
+    <div class="px"><h3>👆 Touch</h3><table>
+      <tr><td>Joystick links</td><td>Laufen</td></tr>
+      <tr><td><b>A</b></td><td>Sprechen / Weiter</td></tr>
+      <tr><td><b>B</b></td><td>Schwert</td></tr>
+      <tr><td>Symbole oben</td><td>Inventar, Quests, Karte, Pause</td></tr>
+      <tr><td>Doppeltipp</td><td>Szene überspringen</td></tr>
+    </table></div>
+  </div>
+</div></section>
+
+<section class="cta"><div class="wrap">
+  <h2 style="display:inline-block">Bereit für das Abenteuer?</h2>
+  <p>Läuft in jedem modernen Browser – einfach starten, kein Konto nötig.</p>
+  <a class="btn" href="../index.html">▶ JETZT SPIELEN</a>
+  <p style="margin-top:26px"><a class="btn alt" href="https://github.com/jodaaisupport-commits/pixel-world">★ Quellcode auf GitHub</a></p>
+</div></section>
+</main>
+
+<footer><div class="wrap">Pixel World · ein kleines Browser-Abenteuer · <a href="../index.html">Spielen</a> · <a href="https://github.com/jodaaisupport-commits/pixel-world">GitHub</a><br>Alle Grafiken und Musik werden prozedural im Spiel erzeugt.</div></footer>
+
+<div id="lb" role="dialog" aria-modal="true" aria-label="Screenshot"><button class="x" aria-label="Schließen">✕</button><button class="nv p" aria-label="Vorheriges">‹</button><img alt=""><p></p><button class="nv n" aria-label="Nächstes">›</button></div>
+
+<script>
+const SHOTS=[['dorf','Das Dorf – Startpunkt am Brunnen'],['taverne','Innenraum: Taverne „Zum Goldenen Krug“'],['dialog','Gespräche mit den Dorfbewohnern'],['kampf','Kampf im Dunkelwald'],['boss','Bosskampf mit Lebensleiste'],['oase','Wüste mit Oase'],['frost','Die Frosthöhen'],['vulkaninsel','Die Vulkaninsel'],['kueste','Küste und Bootssteg'],['handy','Handy-Ansicht mit Touch-Steuerung']];
+const gal=document.getElementById('gal'),lb=document.getElementById('lb'),li=lb.querySelector('img'),lp=lb.querySelector('p');let cur=0,last;
+SHOTS.forEach(([f,c],i)=>{const b=document.createElement('button');b.setAttribute('aria-label','Vergrößern: '+c);b.innerHTML=`<figure class="px"><img src="img/${f}-t.webp" alt="${c}" loading="lazy" width="640" height="360"><figcaption>${c}</figcaption></figure>`;b.onclick=()=>{last=b;show(i)};gal.appendChild(b)});
+function show(i){cur=(i+SHOTS.length)%SHOTS.length;li.src='img/'+SHOTS[cur][0]+'.webp';li.alt=lp.textContent=SHOTS[cur][1];lb.classList.add('open');lb.querySelector('.x').focus()}
+function close(){lb.classList.remove('open');last&&last.focus()}
+lb.querySelector('.x').onclick=close;lb.querySelector('.p').onclick=()=>show(cur-1);lb.querySelector('.n').onclick=()=>show(cur+1);
+lb.addEventListener('click',e=>{if(e.target===lb)close()});
+addEventListener('keydown',e=>{if(!lb.classList.contains('open'))return;if(e.key==='Escape')close();if(e.key==='ArrowLeft')show(cur-1);if(e.key==='ArrowRight')show(cur+1)});
+let tx=0;lb.addEventListener('touchstart',e=>tx=e.touches[0].clientX,{passive:true});lb.addEventListener('touchend',e=>{const d=e.changedTouches[0].clientX-tx;if(Math.abs(d)>50)show(cur+(d<0?1:-1))});
+</script>
+</body>
+</html>

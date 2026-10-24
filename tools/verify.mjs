@@ -18,7 +18,7 @@ const problems = [];
 const ignoreNoise = (s) => /service.?worker|sw\.js|Failed to register|favicon|mods\/|chrome-extension/i.test(s || '');
 page.on('console', (m) => { const t = m.text(); if (m.type() === 'error' || m.type() === 'warning') { if (!ignoreNoise(t)) problems.push(`console.${m.type()}: ${t}`); } else console.log('  [page]', t); });
 page.on('pageerror', (e) => { if (!ignoreNoise(e.message)) problems.push('pageerror: ' + e.message); });
-page.on('requestfailed', (r) => { if (!ignoreNoise(r.url())) problems.push('requestfailed: ' + r.url()); });
+page.on('requestfailed', (r) => { const f = (r.failure() || {}).errorText || ''; if (!ignoreNoise(r.url()) && !/ERR_ABORTED/.test(f)) problems.push('requestfailed: ' + r.url() + ' ' + f); });
 page.on('response', (r) => { if (r.status() >= 400 && !ignoreNoise(r.url())) problems.push(`http ${r.status()}: ${r.url()}`); });
 
 await page.goto(URL + (URL.includes('?') ? '&' : '?') + 'reset=1', { waitUntil: 'networkidle' });

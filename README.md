@@ -1,5 +1,7 @@
 # Pixel World – Prototyp
 
+**▶ [Landingpage mit Screenshots](https://jodaaisupport-commits.github.io/pixel-world/landing/)** · [Direkt spielen](https://jodaaisupport-commits.github.io/pixel-world/)
+
 Ein spielbarer Browser-Prototyp einer 2D-Pixel-Art-Welt in Top-Down-Ansicht (im Geiste von Zelda / Stardew Valley).
 Reines HTML5-Canvas + Vanilla-JavaScript (ES-Module), **kein Build-Schritt, keine externen Assets**:
 Alle Tiles, Objekte, Möbel und Figuren werden beim Start prozedural aus kleinen, handverlesenen Paletten
@@ -486,3 +488,8 @@ Status zur Laufzeit: `window.__game.features` bzw. Konsole `[pixel-world] v100 i
 ### Touch
 
 - Joystick (Analog oder D-Pad in Optionen), A/B frei belegbar, Pause-Button, Cutscene: **Doppeltippen** = überspringen.
+
+
+## Landingpage
+
+`landing/index.html` – statische Seite (eigenes CSS, keine Abhängigkeiten) mit Kurzbeschreibung, Features, Screenshot-Galerie mit Lightbox (`landing/img/*.webp`) und Steuerung. Das Spiel bleibt unter `index.html`. Im Spiel verlinkt im Optionen-Menü.
