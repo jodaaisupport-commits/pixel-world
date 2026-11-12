@@ -184,7 +184,7 @@ export class UI {
     this.opt.querySelector('.opt-body').innerHTML = rows.map(([l, v, k], i) => `<div data-i="${i}" class="opt-row${i === this.optSel ? ' sel' : ''}" tabindex="0" role="option" aria-selected="${i===this.optSel}"><span>${i === this.optSel ? '▶' : '&nbsp;'} ${l}</span><b class="${v === 'Aus' ? 'off' : ''}">${v}</b></div>`).join('') +
       `<div class="opt-now">♪ Jetzt läuft: <b>${tr}</b>${this.G.audio.ready ? '' : ' <i>(Ton startet nach dem ersten Tastendruck)</i>'}</div>
        <div class="opt-keys"><b>N</b> Musik an/aus · <b>B</b> Effekte an/aus · <b>P</b>/<b>Esc</b> Optionen</div>
-       <div class="opt-keys"><a href="landing/" target="_blank" rel="noopener" style="color:#ffe14d">ℹ Über Pixel World (Landingpage)</a></div>`;
+       <div class="opt-keys"><a href="../" target="_blank" rel="noopener" style="color:#ffe14d">ℹ Über Pixel World (Landingpage)</a></div>`;
   }
   renderInv() {
     const s = this.G.state, list = this.items();

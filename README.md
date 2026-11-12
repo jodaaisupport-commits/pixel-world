@@ -1,6 +1,6 @@
 # Pixel World – Prototyp
 
-**▶ [Landingpage mit Screenshots](https://pixel-world.jodabreit-ai.de/landing/)** · [Direkt spielen](https://pixel-world.jodabreit-ai.de/)
+**▶ [Startseite mit Screenshots](https://pixel-world.jodabreit-ai.de/)** · **[Direkt spielen](https://pixel-world.jodabreit-ai.de/play/)**
 
 Ein spielbarer Browser-Prototyp einer 2D-Pixel-Art-Welt in Top-Down-Ansicht (im Geiste von Zelda / Stardew Valley).
 Reines HTML5-Canvas + Vanilla-JavaScript (ES-Module), **kein Build-Schritt, keine externen Assets**:
@@ -64,7 +64,7 @@ viele geben Hinweise auf die anderen Gebiete, manche reagieren darauf, ob man ei
 ```bash
 cd pixel-world
 python3 -m http.server 8080
-# dann im Browser: http://localhost:8080/
+# dann im Browser: http://localhost:8080/ (Startseite) bzw. http://localhost:8080/play/ (Spiel)
 ```
 
 (ES-Module funktionieren nicht über `file://`, daher ein beliebiger statischer Server.)
@@ -333,12 +333,12 @@ bei Quest-/Truhen-Ereignissen und regelmäßig nach Änderungen. Beim nächsten 
 während eines Bosskampfs wird der Punkt vor der Arena als Position gesichert. Seit Phase 5 kommen Werkzeuge
 (Stiefel, Haken, Steigeisen) und das Kapitel der zweiten Geschichte (`story.ch2`) dazu; ältere Spielstände
 (auch mitten in der ersten Geschichte) laden weiter – fehlende Felder bekommen Standardwerte, die zweite
-Geschichte gilt dann als noch nicht begonnen. **Neues Spiel:** `http://localhost:8080/?reset=1` (löscht den Spielstand).
+Geschichte gilt dann als noch nicht begonnen. **Neues Spiel:** `http://localhost:8080/play/?reset=1` (löscht den Spielstand).
 
 ## Aufbau
 
 ```
-index.html             Canvas, HUD, Dialogbox, Gebiets-Einblendung, Styles
+play/index.html        Spiel: Canvas, HUD, Dialogbox, Gebiets-Einblendung, Styles
 src/main.js            Szenen-System (Laden, Cache, Überblendung, Übergänge), Eingabe, Game-Loop,
                        y-sortiertes Rendering, Licht/Dunkelheit, Partikel, HUD/Minimap
 src/map.js             Gemeinsames Kartenmodell (createMap): Boden, Kollision, Objekte, Decals,
@@ -466,7 +466,7 @@ Status zur Laufzeit: `window.__game.features` bzw. Konsole `[pixel-world] v100 i
 
 ### Gerätetest & Bug-Report
 
-- Live: https://pixel-world.jodabreit-ai.de/
+- Live: https://pixel-world.jodabreit-ai.de/ (Startseite) · Spiel: https://pixel-world.jodabreit-ai.de/play/
 - Repo/Issues: https://github.com/jodaaisupport-commits/pixel-world/issues
 - Bitte Gerät, Browser und Schritte nennen. Debug: `?debug=1`, Reset: `?reset=1`, Slot: `?slot=0|1|2`.
 
@@ -492,4 +492,4 @@ Status zur Laufzeit: `window.__game.features` bzw. Konsole `[pixel-world] v100 i
 
 ## Landingpage
 
-`landing/index.html` – statische Seite (eigenes CSS, keine Abhängigkeiten) mit Kurzbeschreibung, Features, Screenshot-Galerie mit Lightbox (`landing/img/*.webp`) und Steuerung. Das Spiel bleibt unter `index.html`. Im Spiel verlinkt im Optionen-Menü.
+`index.html` (Root) – Startseite: statisch, eigenes CSS, keine Abhängigkeiten; Kurzbeschreibung, Features, Screenshot-Galerie mit Lightbox (`img/*.webp`) und Steuerung. Das Spiel liegt unter `play/index.html` (URL `/play/`); `landing/` leitet auf `/` weiter. Manifest (`start_url: ./play/`) und Service Worker (`sw.js`, Scope `/`) liegen im Root, damit die Homescreen-App direkt das Spiel öffnet. Im Spiel verlinkt im Optionen-Menü („Über Pixel World“).

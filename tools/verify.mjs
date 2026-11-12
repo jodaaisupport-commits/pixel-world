@@ -7,7 +7,7 @@ import fs from 'node:fs';
 import { runArc2 } from './verify-arc2.mjs';
 import { runMobile } from './verify-mobile.mjs';
 
-const URL = process.env.URL || 'http://localhost:8080/';
+const URL = process.env.URL || 'http://localhost:8080/play/';
 const OUT = new globalThis.URL('../screenshots/', import.meta.url).pathname;
 const CHROME = process.env.CHROME || '/usr/bin/google-chrome';
 fs.mkdirSync(OUT, { recursive: true });
@@ -649,7 +649,7 @@ check('?reset=1 startet ein neues Spiel', fresh.coins === 10 && !fresh.weapon, f
 
 const desk = await G(() => ({ touch: document.body.classList.contains('touch'), hidden: document.getElementById('touch').classList.contains('hidden'), a: getComputedStyle(document.querySelector('#touch .t-a')).display !== 'none' && document.querySelector('#touch .t-a').getBoundingClientRect().width > 0 }));
 check('Desktop: keine Touch-Steuerung eingeblendet', !desk.touch && desk.hidden && !desk.a, desk);
-const man = await G(() => fetch('manifest.webmanifest').then((r) => r.json()).then(async (m) => ({ name: m.name, icons: await Promise.all(m.icons.map((i) => fetch(i.src).then((r) => r.ok))) })));
+const man = await G(() => fetch('../manifest.webmanifest').then((r) => r.json()).then(async (m) => ({ name: m.name, icons: await Promise.all(m.icons.map((i) => fetch('../' + i.src).then((r) => r.ok))) })));
 check('Web-App-Manifest und Icons erreichbar', man.name === 'Pixel World' && man.icons.every(Boolean), man);
 
 if (process.env.FULLMAP) {
@@ -687,7 +687,7 @@ await page.keyboard.press('KeyP'); await page.waitForTimeout(200);
 const opt2 = await G(() => document.getElementById('options').textContent);
 await page.keyboard.press('Escape');
 check('Optionen: Seed / Slot / Vibration', /Seed|Speicherplatz|Vibration/.test(opt2), opt2.slice(0, 120));
-const mods = await G(() => fetch('mods/index.json').then((r) => r.ok));
+const mods = await G(() => fetch('../mods/index.json').then((r) => r.ok));
 check('Mod-Index erreichbar', mods);
 
 await runMobile({ browser, URL, OUT, check: (n, ok, info) => check(n, ok, info), devices });

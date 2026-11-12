@@ -154,7 +154,7 @@ export async function runMobile({ browser, URL, OUT, check, devices }) {
 
 if (import.meta.url === `file://${process.argv[1]}`) {
   const { chromium, devices } = await import('playwright-core');
-  const URL = process.env.URL || 'http://localhost:8080/';
+  const URL = process.env.URL || 'http://localhost:8080/play/';
   const OUT = new globalThis.URL('../screenshots/', import.meta.url).pathname;
   fs.mkdirSync(OUT, { recursive: true });
   const browser = await chromium.launch({ executablePath: process.env.CHROME || '/usr/bin/google-chrome', headless: true, args: ['--use-gl=swiftshader'] });

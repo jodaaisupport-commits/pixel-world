@@ -1,279 +1,135 @@
 <!doctype html>
 <html lang="de">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
-  <meta name="theme-color" content="#20161a" />
-  <meta name="mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <meta name="apple-mobile-web-app-title" content="Pixel World" />
-  <meta name="format-detection" content="telephone=no" />
-  <link rel="manifest" href="manifest.webmanifest" />
-  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
-  <title>Pixel World – Prototyp</title>
-  <link rel="icon" type="image/png" href="icons/favicon-32.png" />
-  <style>
-    html, body { margin: 0; height: 100%; overflow: hidden; background: #14100f; touch-action: none; overscroll-behavior: none;
-      -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; -webkit-tap-highlight-color: transparent; -webkit-text-size-adjust: 100%; }
-    body { position: fixed; inset: 0; }
-    canvas#game { display: block; image-rendering: pixelated; image-rendering: crisp-edges; }
-    .panel {
-      position: fixed; color: #f7eedc; background: rgba(32, 22, 26, 0.82);
-      border: 3px solid #f7eedc; box-shadow: 0 0 0 3px #20161a, 4px 4px 0 3px rgba(0,0,0,0.35);
-      font: bold 14px/1.35 ui-monospace, "DejaVu Sans Mono", "Courier New", monospace;
-      padding: 6px 10px; letter-spacing: 0.5px; user-select: none; pointer-events: none;
-    }
-    #hud { top: 14px; left: 14px; }
-    #hud-place { font-size: 17px; color: #ffe14d; }
-    #hud-coords { color: #cfc2a8; font-size: 12px; }
-    #help { bottom: 14px; left: 14px; font-size: 12px; color: #e8dcc2; }
-    #help b { color: #ffe14d; }
-    #minimap { top: 14px; right: 14px; padding: 4px; }
-    #minimap canvas { display: block; width: 192px; height: 144px; image-rendering: pixelated; }
-    #prompt { bottom: 70px; left: 50%; transform: translateX(-50%); font-size: 13px; }
-    #dialog { bottom: 66px; left: 50%; transform: translateX(-50%); max-width: 660px; width: 70%; min-height: 64px; font-size: 15px; padding: 14px 18px 12px; }
-    #dialog .dlg-name { position: absolute; top: -17px; left: 12px; background: #20161a; color: #ffe14d; border: 3px solid #f7eedc; padding: 2px 10px; font-size: 13px; }
-    #dialog .dlg-text { white-space: pre-wrap; min-height: 40px; }
-    #dialog .dlg-more { position: absolute; right: 10px; bottom: 4px; color: #ffe14d; font-size: 12px; animation: blink 0.8s steps(2) infinite; }
-    #dialog .dlg-more::before { content: attr(data-page) ' '; color: #8f826c; animation: none; }
-    @keyframes blink { 50% { opacity: 0.35; } }
-    #area { top: 18%; left: 50%; transform: translate(-50%, -10px); opacity: 0; transition: opacity 0.5s, transform 0.5s; text-align: center; font-size: 22px; padding: 10px 24px; color: #ffe14d; }
-    #area small { display: block; font-size: 11px; color: #cfc2a8; letter-spacing: 2px; text-transform: uppercase; }
-    #area.show { opacity: 1; transform: translate(-50%, 0); }
-    .hidden { display: none; }
-    #hud-stats { display: flex; align-items: center; gap: 12px; margin-bottom: 4px; }
-    #hearts { image-rendering: pixelated; display: block; }
-    #hearts.hit { animation: hit 0.45s steps(3); }
-    @keyframes hit { 0%, 66% { filter: brightness(2.2) saturate(0.4); transform: translateX(-2px); } 33% { transform: translateX(2px); } }
-    #purse { display: flex; align-items: center; gap: 4px; color: #ffe14d; font-size: 16px; }
-    #purse img { width: 27px; height: 27px; image-rendering: pixelated; margin: -4px -2px -4px -4px; }
-    #toasts { position: fixed; right: 14px; top: 190px; display: flex; flex-direction: column; align-items: flex-end; gap: 6px; pointer-events: none; }
-    .toast { position: static; color: #f7eedc; background: rgba(32,22,26,0.88); border: 3px solid #f7eedc; box-shadow: 0 0 0 3px #20161a;
-      font: bold 13px/1.2 ui-monospace, "DejaVu Sans Mono", monospace; padding: 4px 10px 4px 6px; display: flex; align-items: center; gap: 6px;
-      animation: tin 0.25s ease-out; transition: opacity 0.4s, transform 0.4s; }
-    .toast img { width: 27px; height: 27px; image-rendering: pixelated; }
-    .toast.out { opacity: 0; transform: translateX(20px); }
-    @keyframes tin { from { opacity: 0; transform: translateX(30px); } }
-    #banner { top: 38%; left: 50%; transform: translate(-50%, -50%) scale(0.9); opacity: 0; transition: opacity 0.35s, transform 0.35s; text-align: center; padding: 14px 34px 12px; border-color: #ffe14d; }
-    #banner.show { opacity: 1; transform: translate(-50%, -50%) scale(1); }
-    #banner small { display: block; font-size: 12px; color: #ffe14d; letter-spacing: 3px; text-transform: uppercase; }
-    #banner .b-title { font-size: 24px; margin: 4px 0; }
-    #banner .b-lines span { display: inline-block; margin: 2px 6px; color: #9fe08a; font-size: 13px; }
-    #banner .b-lines span::before { content: '+ '; }
-    #banner .b-hint { color: #8f826c; font-size: 11px; margin-top: 4px; }
-    .window { top: 50%; left: 50%; transform: translate(-50%, -50%); width: 560px; max-width: 92vw; max-height: 82vh; overflow: hidden; padding: 12px 18px 10px; font-size: 13px; background: rgba(32,22,26,0.95); }
-    .window h2 { margin: 0 0 10px; font-size: 18px; color: #ffe14d; letter-spacing: 1px; }
-    .window .hint { margin-top: 10px; color: #8f826c; font-size: 11px; text-align: right; }
-    .window .muted { color: #8f826c; }
-    .slot { width: 54px; height: 54px; background: #3a2a30; border: 2px solid #5a4648; box-shadow: inset 2px 2px 0 #20161a; position: relative; box-sizing: border-box; }
-    .slot img { width: 54px; height: 54px; image-rendering: pixelated; position: absolute; left: -2px; top: -2px; }
-    .slot b { position: absolute; right: 3px; bottom: 0; font-size: 12px; color: #fff; text-shadow: 1px 1px 0 #000, -1px 0 0 #000; }
-    .slot.sel { border-color: #ffe14d; box-shadow: 0 0 0 2px #ffe14d, inset 2px 2px 0 #20161a; }
-    .grid { display: grid; grid-template-columns: repeat(8, 54px); gap: 8px; justify-content: center; margin: 10px 0; }
-    .inv-top { display: flex; gap: 18px; align-items: center; }
-    .inv-top.tools { margin-top: 6px; gap: 12px; }
-    .eq { display: flex; align-items: center; gap: 8px; color: #cfc2a8; font-size: 12px; }
-    .eq i { color: #f7eedc; font-style: normal; }
-    .purse { margin-left: auto; text-align: right; color: #ffe14d; font-size: 15px; }
-    .purse img { width: 27px; height: 27px; image-rendering: pixelated; vertical-align: middle; }
-    .purse .hp { color: #ff8a8a; font-size: 12px; }
-    .desc { min-height: 58px; border-top: 2px solid #5a4648; padding-top: 8px; }
-    .desc b { color: #ffe14d; font-size: 14px; } .desc p { margin: 4px 0; color: #e8dcc2; font-weight: normal; }
-    .desc em { color: #9fe08a; font-style: normal; font-size: 12px; }
-    .quest { border: 2px solid #5a4648; padding: 8px 10px; margin-bottom: 8px; background: #2a1e22; }
-    .q-title { color: #ffe14d; font-size: 15px; } .q-giver { color: #8f826c; font-size: 11px; }
-    .quest p { margin: 4px 0 6px; font-weight: normal; color: #cfc2a8; }
-    .quest ul { margin: 0; padding: 0; list-style: none; } .quest li { margin: 2px 0; }
-    .quest li.done { color: #9fe08a; text-decoration: line-through; } .quest li.cur { color: #f7eedc; }
-    .q-reward { margin-top: 6px; color: #e0b84a; font-size: 12px; }
-    .q-done-head { color: #8f826c; margin: 10px 0 4px; letter-spacing: 2px; text-transform: uppercase; font-size: 11px; }
-    .q-done { color: #9fe08a; }
-    .shop-row { display: grid; grid-template-columns: 54px 1fr auto; grid-template-rows: auto auto; gap: 0 12px; align-items: center; padding: 6px 8px; border: 2px solid transparent; margin-bottom: 4px; }
-    .shop-row > img { width: 54px; height: 54px; image-rendering: pixelated; grid-row: span 2; }
-    .shop-row b { color: #f7eedc; } .shop-row p { margin: 2px 0 0; font-weight: normal; color: #cfc2a8; font-size: 12px; }
-    .shop-row .price { color: #ffe14d; font-size: 16px; display: flex; align-items: center; }
-    .shop-row .price img { width: 27px; height: 27px; image-rendering: pixelated; }
-    .shop-row .own { grid-column: 3; color: #8f826c; font-size: 11px; text-align: right; }
-    .shop-row.sel { border-color: #ffe14d; background: #3a2a30; } .shop-row.poor .price { color: #a85a5a; }
-    #dialog .dlg-choices { margin-top: 8px; color: #cfc2a8; } #dialog .dlg-choices .sel { color: #ffe14d; }
-    #death { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; pointer-events: none; color: #ff6a6a; font: bold 34px ui-monospace, monospace; text-shadow: 3px 3px 0 #20161a; opacity: 0; transition: opacity 0.4s; letter-spacing: 3px; }
-    #death.show { opacity: 1; }
-    #hud-title { color: #ffb84a; font-size: 12px; }
-    .ql-body { max-height: 66vh; overflow-y: auto; }
-    .quest.main { border-color: #ffb84a; background: linear-gradient(#3a2618, #2a1e22); box-shadow: inset 0 0 0 1px #6a4420; }
-    .quest.main .q-title { color: #ffd27a; font-size: 16px; }
-    .quest.main.arc2 { border-color: #5ad0ff; background: linear-gradient(#18303a, #1e222a); box-shadow: inset 0 0 0 1px #20506a; }
-    .quest.main.arc2 .q-title { color: #9fe6ff; }
-    .q-kicker { color: #ffb84a; font-size: 10px; letter-spacing: 2px; text-transform: uppercase; }
-    #banner.chapter { border-color: #ffb84a; } #banner.chapter small { color: #ffb84a; } #banner.chapter .b-title { color: #ffd27a; }
-    #banner.boss { border-color: #ff4a7a; top: 70%; } #banner.boss small { color: #ff8aa8; }
-    .opt-row { display: flex; justify-content: space-between; padding: 7px 10px; border: 2px solid transparent; font-size: 14px; }
-    .opt-row.sel { border-color: #ffe14d; background: #3a2a30; color: #ffe14d; }
-    .opt-row b { color: #9fe08a; letter-spacing: 1px; } .opt-row b.off { color: #e07a7a; }
-    .opt-now { margin-top: 10px; color: #cfc2a8; font-size: 12px; } .opt-now b { color: #ffe14d; } .opt-now i { color: #8f826c; font-style: normal; }
-    .opt-keys { margin-top: 6px; color: #8f826c; font-size: 11px; } .opt-keys b { color: #ffe14d; }
-    #bossbar { top: 16px; left: 50%; transform: translateX(-50%); width: 460px; max-width: 70vw; text-align: center; padding: 6px 14px 8px; border-color: #ff4a7a; }
-    #bossbar .bb-name { color: #ffd0dc; font-size: 16px; letter-spacing: 3px; text-transform: uppercase; }
-    #bossbar .bb-name small { display: block; color: #c07090; font-size: 10px; letter-spacing: 2px; }
-    #bossbar .bb-bar { position: relative; height: 12px; margin-top: 5px; background: #20101a; border: 2px solid #f7eedc; box-shadow: 0 0 0 2px #20161a; }
-    #bossbar .bb-fill, #bossbar .bb-ghost { position: absolute; left: 0; top: 0; bottom: 0; }
-    #bossbar .bb-ghost { background: #f7eedc; } #bossbar .bb-fill { background: linear-gradient(#ff7aa0, #c0204a); transition: width 0.1s; }
-    #bossbar.p3 .bb-fill { background: linear-gradient(#ff9a5a, #d0301a); }
-    #bossbar i { position: absolute; top: -2px; bottom: -2px; width: 2px; background: #20161a; }
-    #bossbar .bb-phase { color: #c0a8b0; font-size: 11px; margin-top: 3px; }
-    body.letterbox::before, body.letterbox::after, body.cinema::before, body.cinema::after { content: ''; position: fixed; left: 0; right: 0; height: 9vh; background: #000; z-index: 5; pointer-events: none; }
-    body.letterbox::before, body.cinema::before { top: 0; } body.letterbox::after, body.cinema::after { bottom: 0; }
-    body.cinema #hud, body.cinema #help, body.cinema #prompt, body.cinema #minimap, body.cinema #toasts, body.cinema #bossbar,
-    body.letterbox #help, body.letterbox #prompt, body.letterbox #minimap { display: none; }
-    #cine { position: fixed; inset: 0; z-index: 6; pointer-events: none; }
-    #cine .cine-title { position: absolute; top: 32%; left: 50%; transform: translate(-50%, -50%); text-align: center; color: #ffe14d; font: bold 64px/1 ui-monospace, "DejaVu Sans Mono", monospace; letter-spacing: 6px; text-shadow: 4px 4px 0 #20161a, -2px -2px 0 #20161a; animation: cfade 1.2s; }
-    #cine .cine-title small { display: block; margin-top: 12px; font-size: 22px; letter-spacing: 8px; color: #d9b8ff; text-transform: uppercase; }
-    #cine .cine-text { position: absolute; bottom: calc(9vh + 18px); left: 50%; transform: translateX(-50%); width: 72%; max-width: 760px; min-height: 48px; font-size: 16px; padding: 14px 20px; pointer-events: none; }
-    #cine .cine-hint { position: absolute; bottom: 2.6vh; right: 24px; color: #8f826c; font: bold 12px ui-monospace, monospace; z-index: 7; }
-    @keyframes cfade { from { opacity: 0; } }
-    #credits { position: fixed; inset: 0; z-index: 8; background: radial-gradient(ellipse at 50% 40%, #1c1430 0%, #08060e 75%); overflow: hidden; color: #f7eedc; font: bold 16px/1.5 ui-monospace, "DejaVu Sans Mono", monospace; text-align: center; }
-    #credits .cr-roll { position: absolute; left: 0; right: 0; top: 100%; }
-    #credits .cr-roll.run { animation: roll 22s linear forwards; }
-    @keyframes roll { to { transform: translateY(calc(-100% - 45vh)); } }
-    #credits .cr-h { font-size: 54px; color: #ffe14d; letter-spacing: 6px; text-shadow: 4px 4px 0 #20161a; }
-    #credits .cr-s { font-size: 20px; color: #d9b8ff; letter-spacing: 6px; text-transform: uppercase; }
-    #credits .cr-t { color: #cfc2a8; } #credits .cr-k { color: #ffb84a; font-size: 12px; letter-spacing: 3px; text-transform: uppercase; margin-top: 6px; }
-    #credits .cr-n { color: #f7eedc; } #credits .cr-h2 { font-size: 30px; color: #9fe08a; margin-top: 30px; } #credits .cr-gap { height: 26px; }
-    #credits .cr-end { position: absolute; bottom: 3vh; right: 3vw; z-index: 2; color: #cfc2a8; font-size: 12px; background: rgba(8,6,14,0.85); border: 2px solid #3a2c52; padding: 6px 12px; }
-    #credits .cr-stars { position: absolute; inset: 0; background-image: radial-gradient(1px 1px at 10% 20%, #fff, transparent), radial-gradient(1px 1px at 70% 30%, #fff, transparent), radial-gradient(2px 2px at 40% 70%, #d9b8ff, transparent), radial-gradient(1px 1px at 85% 80%, #fff, transparent), radial-gradient(1px 1px at 25% 85%, #bfeaff, transparent), radial-gradient(2px 2px at 55% 15%, #ffe14d, transparent); opacity: 0.7; }
-
-      /* ---------- Antippen: Fenster/Dialog/Zwischensequenzen nehmen Eingaben an */
-    #dialog, .window { pointer-events: auto; }
-    #dialog { z-index: 10; cursor: pointer; } .window { z-index: 12; } #cine, #credits { z-index: 20; pointer-events: auto; }
-    #dialog .dlg-choices div { padding: 3px 0; cursor: pointer; }
-    .window .slot[data-i], .window .shop-row, .window .opt-row { cursor: pointer; }
-    .win-close { position: absolute; top: 6px; right: 8px; width: 34px; height: 34px; padding: 0; border: 3px solid #f7eedc; background: #20161a; color: #ffe14d;
-      font: bold 16px/1 ui-monospace, monospace; cursor: pointer; box-shadow: 0 0 0 2px #20161a; }
-    .win-close:active { background: #4a3036; }
-    /* ---------- Touch-Steuerung */
-    #touch { position: fixed; inset: 0; pointer-events: none; z-index: 5; }
-    #touch.hidden { display: none; }
-    .t-zone { position: absolute; left: 0; bottom: 0; width: 46%; height: 72%; pointer-events: auto; touch-action: none; }
-    .t-stick { position: absolute; left: calc(26px + env(safe-area-inset-left)); bottom: calc(26px + env(safe-area-inset-bottom)); width: 120px; height: 120px; opacity: 0.6; transition: opacity 0.15s; }
-    #touch.stick-on .t-stick { opacity: 1; transition: none; }
-    .t-base, .t-knob, .t-btn, .t-sm { background: transparent no-repeat center / 100% 100%; image-rendering: pixelated; }
-    .t-base { position: absolute; inset: 0; }
-    .t-knob { position: absolute; left: 33px; top: 33px; width: 54px; height: 54px; }
-    .t-btn, .t-sm { position: absolute; border: 0; padding: 0; margin: 0; pointer-events: auto; touch-action: none; outline: none; opacity: 0.92; }
-    .t-btn { width: 78px; height: 78px; }
-    .t-btns { position: absolute; right: calc(18px + env(safe-area-inset-right)); bottom: calc(18px + env(safe-area-inset-bottom)); width: 168px; height: 128px; }
-    .t-a { right: 0; top: 0; } .t-b { left: 0; bottom: 0; }
-    .t-small, .t-top { position: absolute; display: flex; gap: 8px; }
-    .t-small { right: calc(16px + env(safe-area-inset-right)); bottom: calc(158px + env(safe-area-inset-bottom)); }
-    .t-top { right: calc(10px + env(safe-area-inset-right)); top: calc(10px + env(safe-area-inset-top)); }
-    .t-sm { position: relative; width: 45px; height: 45px; }
-    .t-btn.down, .t-sm.down { transform: translateY(3px); filter: brightness(0.8); }
-    body.cinema #touch { display: none; }
-    body.menu-open #touch .t-stick, body.menu-open #touch .t-btns, body.menu-open #touch .t-small, body.menu-open #touch .t-zone { display: none; }
-    body.dlg-open #touch .t-stick, body.dlg-open #touch .t-zone, body.dlg-open #touch .t-small { display: none; }
-    body.letterbox #touch .t-small, body.letterbox #touch .t-b, body.letterbox #touch .t-stick { visibility: hidden; }
-    /* ---------- Layout auf Touch-Geräten */
-    body.touch #help, body.touch .window .hint, body.touch .opt-keys { display: none; }
-    body.touch #hud { top: calc(8px + env(safe-area-inset-top)); left: calc(8px + env(safe-area-inset-left)); transform: scale(0.82); transform-origin: top left; }
-    body.touch #minimap { top: calc(64px + env(safe-area-inset-top)); right: calc(10px + env(safe-area-inset-right)); }
-    body.touch #minimap canvas { width: 128px; height: 96px; }
-    body.touch #toasts { top: calc(64px + env(safe-area-inset-top)); right: calc(150px + env(safe-area-inset-right)); max-width: 46vw; }
-    body.touch #prompt { bottom: calc(18px + env(safe-area-inset-bottom)); }
-    body.touch #dialog { left: calc(12px + env(safe-area-inset-left)); right: calc(196px + env(safe-area-inset-right)); bottom: calc(14px + env(safe-area-inset-bottom));
-      width: auto; max-width: 760px; transform: none; font-size: 14px; padding: 12px 14px 14px; }
-    body.touch .window { max-height: calc(100% - 20px); overflow-y: auto; touch-action: pan-y; -webkit-overflow-scrolling: touch; padding-top: 10px; }
-    body.touch .ql-body { max-height: none; }
-    body.touch #bossbar { top: calc(8px + env(safe-area-inset-top)); max-width: 46vw; }
-    body.touch.portrait #dialog { left: 8px; right: 8px; bottom: calc(190px + env(safe-area-inset-bottom)); }
-    body.touch.portrait #prompt { bottom: calc(236px + env(safe-area-inset-bottom)); }
-    body.touch.portrait #toasts { right: 8px; top: calc(170px + env(safe-area-inset-top)); }
-    body.touch.portrait #bossbar { top: calc(110px + env(safe-area-inset-top)); max-width: 90vw; }
-    @media (max-height: 460px) { body.touch .window { font-size: 12px; padding: 8px 12px; } body.touch .window h2 { font-size: 15px; margin-bottom: 6px; } body.touch .inv-top { gap: 10px; } }
-    #rotate-hint { top: calc(80px + env(safe-area-inset-top)); left: 50%; transform: translateX(-50%); font-size: 12px; color: #ffe14d; display: none; text-align: center; pointer-events: auto; z-index: 6; }
-    body.touch.portrait #rotate-hint:not(.gone) { display: block; }
-
-    /* v100: Hilfe einzeilig / schmal */
-    #help { max-width: min(92vw, 720px); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    @media (max-width: 1024px) {
-      #help { font-size: 11px; padding: 4px 8px; bottom: 8px; left: 8px; }
-    }
-    body.big-text #dialog, body.big-text .window, body.big-text #help { font-size: 18px; }
-    body.big-text #dialog .dlg-text { font-size: 18px; }
-    body.colorblind #bossbar .bb-fill { background: #5ab4ff !important; }
-    body.colorblind .bb-ghost { background: #888 !important; }
-    body.colorblind #hearts { filter: hue-rotate(180deg) saturate(1.2); }
-    body.perf .toast { transition: none; }
-    .hotbar-row { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
-    .hotbar-row .hb { display: inline-flex; align-items: center; gap: 2px; padding: 2px 4px; border: 2px solid #5a4648; background: #3a2a30; }
-    .hotbar-row .hb.on { border-color: #ffe14d; }
-    .hotbar-row img { width: 18px; height: 18px; image-rendering: pixelated; }
-    #combo { position: fixed; left: 50%; top: 22%; transform: translateX(-50%); font: bold 22px ui-monospace, monospace;
-      color: #ffe14d; text-shadow: 2px 2px 0 #20161a; pointer-events: none; opacity: 0; transition: opacity 0.2s; z-index: 8; }
-    #combo.show { opacity: 1; }
-    #loadbar { position: fixed; inset: 0; background: #14100f; display: flex; flex-direction: column; align-items: center; justify-content: center;
-      z-index: 100; color: #f7eedc; font: bold 14px ui-monospace, monospace; }
-    #loadbar .bar { width: min(280px, 70vw); height: 14px; border: 3px solid #f7eedc; background: #20161a; margin-top: 12px; }
-    #loadbar .fill { height: 100%; width: 0%; background: #ffe14d; transition: width 0.2s; }
-    #loadbar.hidden { display: none; }
-    #errpage { position: fixed; inset: 0; background: #20161a; color: #f7eedc; z-index: 200; display: none; padding: 24px;
-      font: 14px/1.5 ui-monospace, monospace; }
-    #errpage.show { display: block; }
-    #errpage h1 { color: #ffe14d; }
-    body.dpad #touch .t-knob { border-radius: 0; }
-    /* a97 focus */
-    .window .opt-row:focus, .window .slot:focus, .dlg-choices div:focus, .win-close:focus {
-      outline: 2px solid #ffe14d; outline-offset: 2px; }
-    #hud-v100 { font-size: 11px; color: #cfc2a8; margin-top: 2px; }
-  </style>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pixel World – Pixel-Art-Abenteuer im Browser</title>
+<meta name="description" content="Pixel World: ein kostenloses Top-Down-Pixel-Art-Abenteuer im Stil von Zelda und Stardew Valley – direkt im Browser und auf dem Handy spielbar.">
+<meta property="og:title" content="Pixel World">
+<meta property="og:description" content="Kostenloses Pixel-Art-Abenteuer im Browser & auf dem Handy.">
+<meta property="og:image" content="img/dorf.webp">
+<meta name="theme-color" content="#1b1a2e">
+<link rel="canonical" href="https://pixel-world.jodabreit-ai.de/">
+<link rel="icon" href="icons/icon-192.png">
+<style>
+:root{--bg:#1b1a2e;--bg2:#25233d;--card:#2e2b4a;--ink:#f4ecd8;--mute:#b9b0cf;--gold:#f6c453;--grass:#5fb04a;--red:#d9573b;--edge:#0d0c18;
+--mono:ui-monospace,"SFMono-Regular","Cascadia Mono","Consolas","Liberation Mono","DejaVu Sans Mono",monospace}
+*{box-sizing:border-box}html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.6 var(--mono);-webkit-font-smoothing:none}
+img{image-rendering:pixelated;max-width:100%;display:block}
+a{color:var(--gold)}
+.wrap{max-width:1120px;margin:0 auto;padding:0 20px}
+.px{border:4px solid var(--edge);box-shadow:0 0 0 4px var(--ink) inset,6px 6px 0 var(--edge);background:var(--card)}
+nav{position:sticky;top:0;z-index:5;background:rgba(27,26,46,.92);border-bottom:4px solid var(--edge)}
+nav .wrap{display:flex;gap:18px;align-items:center;height:56px}
+nav b{color:var(--gold);letter-spacing:2px;margin-right:auto}
+nav a{color:var(--ink);text-decoration:none;font-size:14px}nav a:hover{color:var(--gold)}
+@media(max-width:640px){nav a.opt{display:none}}
+.hero{position:relative;overflow:hidden;border-bottom:4px solid var(--edge)}
+.hero::before{content:"";position:absolute;inset:0;background:url(img/dorf.webp) center/cover;image-rendering:pixelated;filter:brightness(.45) saturate(1.1)}
+.hero .wrap{position:relative;padding:90px 20px 100px;text-align:center}
+h1{font-size:clamp(40px,9vw,88px);margin:0;line-height:1;color:var(--gold);letter-spacing:4px;text-shadow:4px 4px 0 var(--edge),-2px -2px 0 var(--red)}
+.tag{font-size:clamp(16px,2.6vw,21px);max-width:720px;margin:22px auto 34px;text-shadow:2px 2px 0 var(--edge)}
+.btn{display:inline-block;background:var(--grass);color:#fff;text-decoration:none;font-weight:700;font-size:22px;padding:16px 34px;border:4px solid var(--edge);box-shadow:0 -6px 0 rgba(0,0,0,.25) inset,6px 6px 0 var(--edge);letter-spacing:2px;transition:transform .08s}
+.btn:hover{transform:translate(-2px,-2px);box-shadow:0 -6px 0 rgba(0,0,0,.25) inset,8px 8px 0 var(--edge)}
+.btn:active{transform:translate(4px,4px);box-shadow:0 -6px 0 rgba(0,0,0,.25) inset,2px 2px 0 var(--edge)}
+.btn.alt{background:var(--card);font-size:16px;padding:12px 22px}
+.badges{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:28px}
+.badges span{background:var(--edge);padding:4px 10px;font-size:13px;color:var(--mute)}
+section{padding:70px 0}section:nth-of-type(even){background:var(--bg2)}
+h2{font-size:clamp(26px,4vw,36px);margin:0 0 28px;color:var(--gold);text-shadow:3px 3px 0 var(--edge)}
+h2::before{content:"▶ ";color:var(--red)}
+.grid{display:grid;gap:22px;grid-template-columns:repeat(auto-fit,minmax(300px,1fr))}
+.feat{padding:22px}.feat h3{margin:0 0 8px;font-size:18px}.feat .ico{font-size:30px}.feat p{margin:0;color:var(--mute);font-size:14px}
+.gallery{display:grid;gap:16px;grid-template-columns:repeat(auto-fill,minmax(260px,1fr))}
+.gallery button{all:unset;cursor:zoom-in;display:block}
+.gallery figure{margin:0;padding:6px}
+.gallery img{width:100%;height:auto;aspect-ratio:16/9;object-fit:cover}
+.gallery figcaption{font-size:13px;padding:6px 4px 2px;color:var(--mute)}
+.gallery button:focus-visible figure,.gallery button:hover figure{outline:4px solid var(--gold)}
+table{border-collapse:collapse;width:100%;font-size:14px}td,th{padding:8px 12px;border-bottom:2px solid var(--edge);text-align:left}
+kbd{background:var(--ink);color:var(--edge);padding:1px 7px;border-bottom:3px solid #8a8398;font:inherit;font-weight:700;font-size:13px}
+.two{display:grid;gap:22px;grid-template-columns:repeat(auto-fit,minmax(300px,1fr))}.two>div{padding:20px}
+.cta{text-align:center}.cta p{color:var(--mute)}
+footer{border-top:4px solid var(--edge);padding:28px 0;font-size:13px;color:var(--mute);text-align:center}
+#lb{position:fixed;inset:0;background:rgba(10,9,20,.94);display:none;align-items:center;justify-content:center;z-index:20;flex-direction:column;padding:16px}
+#lb.open{display:flex}#lb img{max-height:82vh;width:auto;border:4px solid var(--ink)}
+#lb p{margin:12px 0 0}#lb .x,#lb .nv{position:absolute;background:var(--card);color:var(--ink);border:4px solid var(--edge);font:700 22px var(--mono);width:52px;height:52px;cursor:pointer}
+#lb .x{top:14px;right:14px}#lb .p{left:14px;top:50%}#lb .n{right:14px;top:50%}
+@media(min-width:1000px){.gallery{grid-template-columns:repeat(5,1fr)}}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}.btn{transition:none}}
+</style>
 </head>
 <body>
-  <div id="loadbar"><div>Pixel World lädt …</div><div class="bar"><div class="fill" id="loadfill"></div></div><small id="loadmsg">Kacheln backen</small></div>
-  <div id="errpage"><h1>Etwas ging schief</h1><p id="errmsg"></p><p>Tipp: Hard-Reload (Ctrl+Shift+R). Audio oft erst nach erstem Tippen.</p><p><a href="./index.html" style="color:#ffe14d">Neu laden</a> · <a href="landing/" style="color:#ffe14d">Über das Spiel</a></p></div>
-  <canvas id="game"></canvas>
-  <div id="combo"></div>
-  <div id="hud" class="panel"><div id="hud-stats"><canvas id="hearts" width="84" height="24"></canvas><div id="purse"><img id="coin-icon" alt=""><span id="coins">0</span></div></div><div id="hud-place">…</div><div id="hud-coords"></div><div id="hud-title" class="hidden"></div></div>
-  <div id="help" class="panel"><b>WASD</b> · <b>E</b> · <b>J</b> · <b>K</b> Ausweichen · <b>C</b> Waffe · <b>I/Q/P</b> · <b>F9</b> Screenshot</div>
-  <div id="minimap" class="panel hidden"><canvas id="minimap-canvas"></canvas></div>
-  <div id="prompt" class="panel hidden"><b>E</b> – ansehen</div>
-  <div id="dialog" class="panel hidden"><div class="dlg-name"></div><div class="dlg-text"></div><div class="dlg-choices hidden"></div><div class="dlg-more"></div></div>
-  <div id="area" class="panel"></div>
-  <div id="toasts"></div>
-  <div id="rotate-hint" class="panel">⟲ Tipp: Gerät quer halten für mehr Übersicht<br><small>(antippen zum Ausblenden)</small></div>
-  <div id="banner" class="panel"></div>
-  <div id="death">BESIEGT …</div>
-  <div id="inv" class="panel window hidden"><h2>Inventar</h2><div class="inv-body"></div><div class="hint">Pfeile/WASD wählen · E benutzen · I/Tab/Esc schließen</div></div>
-  <div id="questlog" class="panel window hidden"><h2>Questlog</h2><div class="ql-body"></div><div class="hint">Q/Esc schließen</div></div>
-  <div id="shop" class="panel window hidden"><h2>Antons Krämerladen</h2><div class="shop-body"></div><div class="hint">↑↓ wählen · E kaufen · Esc schließen</div></div>
-  <div id="options" class="panel window hidden"><h2>Optionen · Audio</h2><div class="opt-body"></div><div class="hint">↑↓ wählen · ←→ ändern · E umschalten · P/Esc schließen</div></div>
-  <div id="bossbar" class="panel hidden"></div>
-  <div id="cine" class="hidden"><div class="cine-title"></div><div class="cine-text panel"></div><div class="cine-hint"></div></div>
-  <div id="credits" class="hidden"><div class="cr-stars"></div><div class="cr-roll"></div><div class="cr-end">E – weiter ins freie Spiel</div></div>
-  
-  <script>
-    window.__pwProgress = (p, msg) => {
-      const f = document.getElementById('loadfill');
-      const m = document.getElementById('loadmsg');
-      if (f) f.style.width = Math.round(p * 100) + '%';
-      if (m && msg) m.textContent = msg;
-      if (p >= 1) setTimeout(() => document.getElementById('loadbar')?.classList.add('hidden'), 200);
-    };
-    window.addEventListener('error', (e) => {
-      const ep = document.getElementById('errpage');
-      const em = document.getElementById('errmsg');
-      if (ep && em) { em.textContent = (e.message || 'Unbekannter Fehler') + (e.filename ? ' @ ' + e.filename : ''); ep.classList.add('show'); }
-    });
-    window.addEventListener('unhandledrejection', (e) => {
-      const ep = document.getElementById('errpage');
-      const em = document.getElementById('errmsg');
-      if (ep && em) { em.textContent = String(e.reason || e); ep.classList.add('show'); }
-    });
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('./sw.js').catch(() => {});
-    }
-    // iOS audio/fullscreen soft fixes
-    document.addEventListener('touchend', () => {}, { passive: true });
-  </script>
-  <script type="module" src="src/main.js"></script>
+<nav><div class="wrap"><b>PIXEL&nbsp;WORLD</b><a class="opt" href="#features">Features</a><a href="#bilder">Bilder</a><a class="opt" href="#steuerung">Steuerung</a><a href="play/">Spielen ▶</a></div></nav>
+
+<header class="hero"><div class="wrap">
+  <h1>PIXEL WORLD</h1>
+  <p class="tag">Ein Top-Down-Pixel-Art-Abenteuer im Stil von Zelda und Stardew Valley. Erkunde ein Dorf voller Geschichten, dunkle Wälder, Wüsten, Frostgipfel und eine Vulkaninsel – direkt im Browser und auf dem Handy. Kostenlos.</p>
+  <a class="btn" href="play/">▶ JETZT SPIELEN</a>
+  <div class="badges"><span>Kostenlos</span><span>Kein Download</span><span>Desktop &amp; Handy</span><span>Offline spielbar</span><span>Deutsch</span></div>
+</div></header>
+
+<main>
+<section id="features"><div class="wrap">
+  <h2>Was dich erwartet</h2>
+  <div class="grid">
+    <div class="feat px"><div class="ico">🗺️</div><h3>Viele Gebiete</h3><p>Dorf, Dunkelwald, Höhlen, Berge, Küste, Wüste mit Oase, Frosthöhen, Eisgrotte, Tempel, Vulkaninsel und Unterwasser-Grotte.</p></div>
+    <div class="feat px"><div class="ico">📜</div><h3>Story &amp; Bosse</h3><p>Zwei Kapitelbögen mit Zwischensequenzen, Splittern, Siegeln und mehrphasigen Bosskämpfen mit eigener Musik.</p></div>
+    <div class="feat px"><div class="ico">⚔️</div><h3>Kampf</h3><p>Schwertschläge, Ausweichrolle, Combos, kritische Treffer, Fallen und Gegner mit Lebensbalken.</p></div>
+    <div class="feat px"><div class="ico">💬</div><h3>NPCs &amp; Quests</h3><p>Dorfbewohner mit Tagesablauf, Entscheidungen, Läden, Questlog, Ruf-System und Nebenaufgaben wie Angeln und Gärtnern.</p></div>
+    <div class="feat px"><div class="ico">📱</div><h3>Touch &amp; Offline</h3><p>Virtueller Joystick, Multi-Touch, auf den Homescreen installierbar und dank Service Worker auch offline spielbar.</p></div>
+    <div class="feat px"><div class="ico">💾</div><h3>Komfort</h3><p>Mehrere Speicherstände, Minimap, große Schrift, Farbenblind-Modus und Mod-Unterstützung.</p></div>
+  </div>
+</div></section>
+
+<section id="bilder"><div class="wrap">
+  <h2>Screenshots</h2>
+  <div class="gallery" id="gal"></div>
+</div></section>
+
+<section id="steuerung"><div class="wrap">
+  <h2>Steuerung</h2>
+  <div class="two">
+    <div class="px"><h3>⌨️ Tastatur</h3><table>
+      <tr><td><kbd>WASD</kbd> / Pfeile</td><td>Laufen</td></tr>
+      <tr><td><kbd>E</kbd></td><td>Sprechen / Benutzen</td></tr>
+      <tr><td><kbd>J</kbd> / <kbd>Leertaste</kbd></td><td>Schwert</td></tr>
+      <tr><td><kbd>K</kbd></td><td>Ausweichen</td></tr>
+      <tr><td><kbd>I</kbd> · <kbd>Q</kbd> · <kbd>P</kbd></td><td>Inventar · Quests · Optionen</td></tr>
+    </table></div>
+    <div class="px"><h3>👆 Touch</h3><table>
+      <tr><td>Joystick links</td><td>Laufen</td></tr>
+      <tr><td><b>A</b></td><td>Sprechen / Weiter</td></tr>
+      <tr><td><b>B</b></td><td>Schwert</td></tr>
+      <tr><td>Symbole oben</td><td>Inventar, Quests, Karte, Pause</td></tr>
+      <tr><td>Doppeltipp</td><td>Szene überspringen</td></tr>
+    </table></div>
+  </div>
+</div></section>
+
+<section class="cta"><div class="wrap">
+  <h2 style="display:inline-block">Bereit für das Abenteuer?</h2>
+  <p>Läuft in jedem modernen Browser – einfach starten, kein Konto nötig.</p>
+  <a class="btn" href="play/">▶ JETZT SPIELEN</a>
+  <p style="margin-top:26px"><a class="btn alt" href="https://github.com/jodaaisupport-commits/pixel-world">★ Quellcode auf GitHub</a></p>
+</div></section>
+</main>
+
+<footer><div class="wrap">Pixel World · ein kleines Browser-Abenteuer · <a href="play/">Spielen</a> · <a href="https://github.com/jodaaisupport-commits/pixel-world">GitHub</a><br>Alle Grafiken und Musik werden prozedural im Spiel erzeugt.</div></footer>
+
+<div id="lb" role="dialog" aria-modal="true" aria-label="Screenshot"><button class="x" aria-label="Schließen">✕</button><button class="nv p" aria-label="Vorheriges">‹</button><img alt=""><p></p><button class="nv n" aria-label="Nächstes">›</button></div>
+
+<script>
+const SHOTS=[['dorf','Das Dorf – Startpunkt am Brunnen'],['taverne','Innenraum: Taverne „Zum Goldenen Krug“'],['dialog','Gespräche mit den Dorfbewohnern'],['kampf','Kampf im Dunkelwald'],['boss','Bosskampf mit Lebensleiste'],['oase','Wüste mit Oase'],['frost','Die Frosthöhen'],['vulkaninsel','Die Vulkaninsel'],['kueste','Küste und Bootssteg'],['handy','Handy-Ansicht mit Touch-Steuerung']];
+const gal=document.getElementById('gal'),lb=document.getElementById('lb'),li=lb.querySelector('img'),lp=lb.querySelector('p');let cur=0,last;
+SHOTS.forEach(([f,c],i)=>{const b=document.createElement('button');b.setAttribute('aria-label','Vergrößern: '+c);b.innerHTML=`<figure class="px"><img src="img/${f}-t.webp" alt="${c}" loading="lazy" width="640" height="360"><figcaption>${c}</figcaption></figure>`;b.onclick=()=>{last=b;show(i)};gal.appendChild(b)});
+function show(i){cur=(i+SHOTS.length)%SHOTS.length;li.src='img/'+SHOTS[cur][0]+'.webp';li.alt=lp.textContent=SHOTS[cur][1];lb.classList.add('open');lb.querySelector('.x').focus()}
+function close(){lb.classList.remove('open');last&&last.focus()}
+lb.querySelector('.x').onclick=close;lb.querySelector('.p').onclick=()=>show(cur-1);lb.querySelector('.n').onclick=()=>show(cur+1);
+lb.addEventListener('click',e=>{if(e.target===lb)close()});
+addEventListener('keydown',e=>{if(!lb.classList.contains('open'))return;if(e.key==='Escape')close();if(e.key==='ArrowLeft')show(cur-1);if(e.key==='ArrowRight')show(cur+1)});
+let tx=0;lb.addEventListener('touchstart',e=>tx=e.touches[0].clientX,{passive:true});lb.addEventListener('touchend',e=>{const d=e.changedTouches[0].clientX-tx;if(Math.abs(d)>50)show(cur+(d<0?1:-1))});
+</script>
 </body>
 </html>

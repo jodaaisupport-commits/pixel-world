@@ -5,12 +5,12 @@ export async function loadMods(api) {
   mark(100, 'mod JSON loader');
   const loaded = [];
   try {
-    const res = await fetch('mods/index.json', { cache: 'no-store' });
+    const res = await fetch(new URL('../mods/index.json', import.meta.url), { cache: 'no-store' });
     if (!res.ok) return loaded;
     const index = await res.json();
     for (const file of index.files || []) {
       try {
-        const r = await fetch('mods/' + file);
+        const r = await fetch(new URL('../mods/' + file, import.meta.url));
         if (!r.ok) continue;
         const mod = await r.json();
         applyMod(api, mod);

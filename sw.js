@@ -1,6 +1,6 @@
-const CACHE = 'pixel-world-v101';
+const CACHE = 'pixel-world-v102';
 const ASSETS = [
-  './', './index.html', './manifest.webmanifest', './.nojekyll',
+  './', './play/', './manifest.webmanifest', './.nojekyll',
   './src/main.js', './icons/favicon-32.png', './icons/apple-touch-icon.png',
 ];
 self.addEventListener('install', (e) => {
