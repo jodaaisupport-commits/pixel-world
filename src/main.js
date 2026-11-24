@@ -13,7 +13,10 @@ import { ITEMS, buildItemArt } from './items.js';
 import { Enemy, buildEnemyArt } from './enemies.js';
 import { questTalk, questMarker, QUESTS, QUEST_ORDER } from './quests.js';
 import { UI } from './ui.js';
-import { newGameState, saveGame, loadGame, clearSave, currentSlot, setSlot, listSlots, clearSaveConfirm } from './save.js';
+import { newGameState, saveGame, loadGame, clearSave, currentSlot, setSlot, listSlots, clearSaveConfirm, readSlotData, writeSlotData, anySave } from './save.js';
+import { installPanel } from './v110/panel.js';
+import * as net from './v110/net.js';
+import { installDeep } from './v110/deep.js';
 import { AudioEngine, TRACK_NAMES } from './audio.js';
 import { Boss, buildBossArt, BOSS_NAME, BOSS_TITLE } from './boss.js';
 import { CHAPTERS, INTRO, OUTRO, CREDITS, MAIN_TITLE, storyTalk, storyMarker } from './story.js';
@@ -51,6 +54,9 @@ const enemyArt = buildEnemyArt();
 const camera = new Camera(16, 16);
 const state = { visited: new Set(), scene: null, tint: 0, fade: null, armed: true, time: 0, dying: 0, respawn: false, loading: false, shake: 0 };
 const params = new URLSearchParams(location.search);
+// v110: ?slot=N wählt den Speicherplatz (Import / Slot-Wechsel laden direkt diesen Slot)
+if (params.has('slot')) { setSlot(+params.get('slot') || 0); params.delete('slot'); history.replaceState(null, '', location.pathname + (params.toString() ? '?' + params : '')); }
+const hadSaveAtBoot = anySave() || params.has('reset') || params.has('nointro');
 if (params.get('reset')) { clearSave(); params.delete('reset'); history.replaceState(null, '', location.pathname + (params.toString() ? '?' + params : '')); }
 const saved = loadGame();
 /** Spielstand: Herzen (in halben Herzen), Taler, Inventar, Ausrüstung, Quests, Welt-Flags. */
@@ -225,10 +231,17 @@ G.btnCycle = () => touch.cycleButtons?.();
 G.listSlots = listSlots;
 G.currentSlot = currentSlot;
 G.cycleSlot = (dir) => {
+  // v110 (7): Slot-Wechsel lädt den Slot wirklich (aktueller Stand wird vorher gesichert)
   const n = (currentSlot() + (dir > 0 ? 1 : 2)) % 3;
-  setSlot(n);
-  ui.toast(`Speicherplatz ${n + 1} – speichere oder lade neu (?slot=${n})`);
+  const meta = listSlots()[n];
+  const label = meta ? `${meta.map || '?'} · ${meta.hp ?? '?'} ♥ · ${new Date(meta.time).toLocaleString('de-DE')}` : 'leer – neues Spiel';
+  if (!confirm(`Zu Speicherplatz ${n + 1} wechseln?\n${label}\n\nDein aktueller Stand in Slot ${currentSlot() + 1} wird vorher gespeichert.`)) return;
+  saveNow();
+  ui.toast(`Wechsle zu Slot ${n + 1} …`);
+  setTimeout(() => { const u = new URL(location.href); u.searchParams.set('slot', String(n)); u.searchParams.delete('reset'); location.replace(u.toString()); }, 300);
 };
+G.onlineLabel = () => (net.onlineEnabled() ? 'An' : 'Aus');
+G.toggleOnline = () => { net.setOnline(!net.onlineEnabled()); ui.toast(`Online-Funktionen: ${net.onlineEnabled() ? 'an' : 'aus'}`); };
 G.deleteSlot = () => {
   if (clearSaveConfirm(currentSlot(), (msg) => confirm(msg))) ui.toast('Spielstand gelöscht');
 };
@@ -340,13 +353,14 @@ function updateCombat(sc, dt) {
   }
   for (const e of sc.enemies) {
     e.update(dt, sc.map, player);
-    if (!e.dead && player.inv <= 0 && player.kbt <= 0 && e.touches(player)) hurtPlayer(e.def.dmg, e);
+    if (!e.dead && player.inv <= 0 && player.kbt <= 0 && e.touches(player)) { hurtPlayer(e.def.dmg, e); vapi.onEnemyTouch?.(e); }
     if (e.sfx) { audio.sfx(e.sfx, {}, 0.08); e.sfx = null; }
     if (e.out && e.out.length) { sc.eshots.push(...e.out); e.out.length = 0; }
   }
   updateShots(sc, dt);
   // Besiegte Gegner: Rauchwolke + Beute
   for (const e of sc.enemies.filter((k) => k.dead)) {
+    vapi.onEnemyKilled?.(e);
     addFx({ type: 'poof', x: e.x, y: e.y - 6 - (e.alt || 0), t: 0, dur: 0.45 });
     audio.sfx('enemyDie', {}, 0.05);
     for (const [item, chance, n] of e.def.drops) {
@@ -592,6 +606,8 @@ let scale = 3;
 window.addEventListener('pointerdown', () => audio.unlock());
 window.addEventListener('keydown', (e) => {
   audio.unlock();
+  // v110: Texteingaben (Import/Name/Sync-Code) bekommen ihre Tasten selbst; nur Esc schließt das Fenster
+  if (e.target && /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName)) { if (e.code === 'Escape') { e.target.blur(); handleKey('Escape'); } return; }
   if (['Tab', 'Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.code)) e.preventDefault();
   handleKey(e.code, e.repeat);
 });
@@ -717,6 +733,8 @@ function interact() {
     n.facePlayer(player);
     // v100: translator, gift, post-boss, inventory comment
     if (n.id === 'runen') {
+      const fp = vapi.feuerprobeRunen?.();
+      if (fp) { dialog.show('Runen-Übersetzer', fp); n.talking = false; return; }
       dialog.show('Runen-Übersetzer', [vapi.translateRune?.('ᚠᚢᚦ Licht') || 'Die Runen flüstern vom Licht unter dem Stein.']);
       n.talking = false; return;
     }
@@ -1120,7 +1138,10 @@ function wantedTrack() {
   const sc = state.scene; if (!sc) return null;
   if (sc.boss && state.fight) return BOSSES[sc.id].music;
   const a2 = arc2.track(sc); if (a2) return a2;
+  if (state.combatMusic) return 'combat'; // v110 (6): Kampf-Thema bei Gegnern in der Nähe
   if (sc.id === 'village') return state.tint === 2 ? 'night' : 'village';
+  if (sc.id === 'vulkaninsel') return 'volcano';
+  if (sc.id === 'grotte') return 'temple';
   return { dunkelwald: 'forest', berge: 'mountain', hoehle: 'cave', tiefe: 'cave', kueste: 'beach' }[sc.id] || 'tavern';
 }
 const SURF = { [0]: 'grass', [1]: 'grass', [2]: 'grass', [3]: 'dirt', [4]: 'sand', [7]: 'stone', [8]: 'wood', [9]: 'dirt', [10]: 'grass', [11]: 'grass', [13]: 'stone', [15]: 'snow', [16]: 'wood', [19]: 'stone', [22]: 'wood', [T.DUNE]: 'sand', [T.QSAND]: 'sand', [T.RUIN]: 'stone', [T.ICE]: 'stone', [T.TEMPLE]: 'stone' };
@@ -1390,6 +1411,19 @@ const arc2 = createArc2({
 for (const [id, cfg] of Object.entries(arc2.bosses)) BOSSES[id] = { ...cfg, intro: () => arc2.bossIntro(cfg) };
 vapi.goTo = goTo; vapi.bossEnv = bossEnv; vapi.applyEquipment = applyEquipment;
 vapi.__game = window.__game;
+// ---------------------------------------------------------------- v110
+vapi.spawnEnemyAt = spawnEnemyAt; vapi.itemArt = itemArt;
+installDeep(vapi);
+const panel = installPanel({ ui, saveNow, currentSlot, readSlotData, writeSlotData });
+G.openNet = (v) => { stopInput(); panel.open(v); };
+G.renderNet = () => panel.render();
+{ const def0 = bossEnv.onDefeated; bossEnv.onDefeated = () => {
+  const id = state.scene.id, ms = (state.fightTime || 0) * 1000;
+  if (net.recordBest(id, ms)) setTimeout(() => ui.toast(`Neue Bestzeit gegen ${net.BOSS_KINDS[id]}: ${net.fmtTime(ms)} – P → Bestenliste`), 1500);
+  return def0();
+}; }
+net.hit('game');
+if (!hadSaveAtBoot) setTimeout(() => ui.toast('Spielstand von einem anderen Gerät? Optionen (P) → Spielstand importieren / Cloud.'), 9000);
 
 // ---------------------------------------------------------------- Loop
 let last = performance.now();
@@ -1436,6 +1470,9 @@ function frame(now) {
       vapi.tickWorld?.(dt); vapi.tickStatus?.(dt); vapi.tickFarm?.(dt); vapi.tickTimedQuest?.(dt);
       const ce = $("combo"); if (ce) { if (game.combo >= 2) { ce.textContent = "COMBO ×" + game.combo; ce.classList.add("show"); } else ce.classList.remove("show"); }
       vapi.updateFishing?.(dt); vapi.updateCompanion?.(sc, dt); vapi.tickAmbient?.();
+      vapi.tickWeatherFx?.(dt); vapi.tickCombatMusic?.(dt);
+      if (state.fight) { if (!state._wasFight) state.fightTime = 0; state.fightTime += dt; }
+      state._wasFight = !!state.fight;
       // dodge cooldown
       if (player.dodgeCd > 0) player.dodgeCd -= dt;
       if (player.dodgeT > 0) player.dodgeT -= dt;
@@ -1508,7 +1545,7 @@ window.__game = {
   setFlag, storyCheck, arc2,
   setStory2(ch2, flags = {}) { game.story.ch2 = ch2; Object.assign(game.story.flags, flags); refreshFlags(state.scene); saveNow(); },
   get bossConfig() { return BOSSES[state.scene.id] || null; },
-  v100, vapi, MAPS,
+  v100, vapi, MAPS, net, panel: () => panel,
   get features() { return v100.status(); },
   fullMapDataURL(id) {
     const sc = id ? getScene(id) : state.scene;

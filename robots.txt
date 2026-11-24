@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://pixel-world.jodabreit-ai.de/sitemap.xml

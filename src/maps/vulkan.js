@@ -21,7 +21,7 @@ export function vulkaninsel() {
   }
   m.place('rock0', 8, 16); m.place('rock1', 26, 12);
   m.place('rock0', 22, 6); m.place('barrel', 11, 19);
-  m.enemies.push({ type: 'golem', x: 20, y: 12 }, { type: 'skorpion', x: 14, y: 20 }, { type: 'staubgeist', x: 24, y: 18 });
+  m.enemies.push({ type: 'golem', x: 20, y: 12 }, { type: 'lavaschleim', x: 14, y: 14 }, { type: 'lavaschleim', x: 24, y: 18 }, { type: 'staubgeist', x: 26, y: 10 });
   m.pickups.push({ key: 'vulkan_obs1', item: 'obsidian', n: 1, tx: 22, ty: 10 });
   m.pickups.push({ key: 'vulkan_herz', item: 'herz', n: 1, tx: 11, ty: 19 });
   m.chests.push({ key: 'vulkan_chest', tx: 28, ty: 8, contents: [['obsidian', 2], ['taler', 30]] });
@@ -50,7 +50,7 @@ export function grotte() {
   m.bg = '#020814';
   for (let y = 1; y < H - 1; y++) for (let x = 1; x < W - 1; x++) m.set(x, y, T.CAVE);
   for (let y = 4; y < 10; y++) for (let x = 8; x < 16; x++) m.set(x, y, T.WATER);
-  m.enemies.push({ type: 'qualle', x: 12, y: 8 }, { type: 'qualle', x: 16, y: 10 }, { type: 'muschel', x: 6, y: 12 });
+  m.enemies.push({ type: 'qualle', x: 12, y: 8 }, { type: 'perlkrabbe', x: 16, y: 10 }, { type: 'muschel', x: 6, y: 12 });
   m.pickups.push({ key: 'grotte_perle', item: 'perle', n: 1, tx: 12, ty: 5 });
   m.pickups.push({ key: 'grotte_muschel', item: 'muschel', n: 1, tx: 18, ty: 12 });
   m.chests.push({ key: 'grotte_chest', tx: 4, ty: 4, contents: [['grosstrank', 1], ['taler', 25]] });

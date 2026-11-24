@@ -464,7 +464,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   const URL = process.env.URL || 'http://localhost:8080/play/';
   const OUT = new globalThis.URL('../screenshots/', import.meta.url).pathname;
   fs.mkdirSync(OUT, { recursive: true });
-  const browser = await chromium.launch({ executablePath: process.env.CHROME || '/usr/bin/google-chrome', headless: true, args: ['--use-gl=swiftshader'] });
+  const browser = await chromium.launch({ executablePath: process.env.CHROME || (fs.existsSync('/usr/bin/google-chrome') ? '/usr/bin/google-chrome' : undefined), headless: true, args: ['--use-gl=swiftshader'] });
   const page = await browser.newPage({ viewport: { width: 1280, height: 720 } });
   const problems = [];
   page.on('console', (m) => { if (m.type() === 'error' || m.type() === 'warning') problems.push(`console.${m.type()}: ${m.text()}`); });

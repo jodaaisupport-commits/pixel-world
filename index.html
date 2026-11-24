@@ -3,14 +3,32 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Pixel World – Pixel-Art-Abenteuer im Browser</title>
-<meta name="description" content="Pixel World: ein kostenloses Top-Down-Pixel-Art-Abenteuer im Stil von Zelda und Stardew Valley – direkt im Browser und auf dem Handy spielbar.">
-<meta property="og:title" content="Pixel World">
-<meta property="og:description" content="Kostenloses Pixel-Art-Abenteuer im Browser & auf dem Handy.">
-<meta property="og:image" content="img/dorf.webp">
+<title>Pixel World – kostenloses Pixel-Art-Abenteuer im Browser (Zelda- &amp; Stardew-Stil)</title>
+<meta name="description" content="Pixel World ist ein kostenloses Top-Down-Pixel-Art-Abenteuer im Stil von Zelda und Stardew Valley: Dorf, Dungeons, Bosse, Angeln und Quests – direkt im Browser und auf dem Handy spielbar, ohne Download.">
+<meta name="keywords" content="Pixel World, Pixel-Art, Browserspiel, Retro-RPG, Zelda-artig, Stardew Valley, kostenlos spielen, Handyspiel, HTML5">
+<meta name="author" content="Crypto">
+<meta name="robots" content="index, follow">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Pixel World">
+<meta property="og:locale" content="de_DE">
+<meta property="og:url" content="https://pixel-world.jodabreit-ai.de/">
+<meta property="og:title" content="Pixel World – Pixel-Art-Abenteuer im Browser">
+<meta property="og:description" content="Kostenloses Retro-Abenteuer im Zelda- und Stardew-Stil. Ohne Download – direkt im Browser und auf dem Handy spielen.">
+<meta property="og:image" content="https://pixel-world.jodabreit-ai.de/img/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Pixel World – Titelbild mit Szenen aus Dorf, Vulkaninsel, Bosskampf, Oase und Frosthöhen">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Pixel World – Pixel-Art-Abenteuer im Browser">
+<meta name="twitter:description" content="Kostenloses Retro-Abenteuer im Zelda- und Stardew-Stil – direkt im Browser und auf dem Handy.">
+<meta name="twitter:image" content="https://pixel-world.jodabreit-ai.de/img/og-image.png">
 <meta name="theme-color" content="#1b1a2e">
 <link rel="canonical" href="https://pixel-world.jodabreit-ai.de/">
-<link rel="icon" href="icons/icon-192.png">
+<link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="manifest" href="manifest.webmanifest">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"VideoGame","name":"Pixel World","url":"https://pixel-world.jodabreit-ai.de/","image":"https://pixel-world.jodabreit-ai.de/img/og-image.png","description":"Kostenloses Top-Down-Pixel-Art-Abenteuer im Stil von Zelda und Stardew Valley, spielbar im Browser und auf dem Handy.","inLanguage":"de","genre":["Action-Adventure","RPG"],"gamePlatform":["Webbrowser","Android","iOS"],"applicationCategory":"Game","operatingSystem":"Any","isAccessibleForFree":true,"offers":{"@type":"Offer","price":"0","priceCurrency":"EUR"}}</script>
 <style>
 :root{--bg:#1b1a2e;--bg2:#25233d;--card:#2e2b4a;--ink:#f4ecd8;--mute:#b9b0cf;--gold:#f6c453;--grass:#5fb04a;--red:#d9573b;--edge:#0d0c18;
 --mono:ui-monospace,"SFMono-Regular","Cascadia Mono","Consolas","Liberation Mono","DejaVu Sans Mono",monospace}
@@ -79,7 +97,7 @@ footer{border-top:4px solid var(--edge);padding:28px 0;font-size:13px;color:var(
     <div class="feat px"><div class="ico">⚔️</div><h3>Kampf</h3><p>Schwertschläge, Ausweichrolle, Combos, kritische Treffer, Fallen und Gegner mit Lebensbalken.</p></div>
     <div class="feat px"><div class="ico">💬</div><h3>NPCs &amp; Quests</h3><p>Dorfbewohner mit Tagesablauf, Entscheidungen, Läden, Questlog, Ruf-System und Nebenaufgaben wie Angeln und Gärtnern.</p></div>
     <div class="feat px"><div class="ico">📱</div><h3>Touch &amp; Offline</h3><p>Virtueller Joystick, Multi-Touch, auf den Homescreen installierbar und dank Service Worker auch offline spielbar.</p></div>
-    <div class="feat px"><div class="ico">💾</div><h3>Komfort</h3><p>Mehrere Speicherstände, Minimap, große Schrift, Farbenblind-Modus und Mod-Unterstützung.</p></div>
+    <div class="feat px"><div class="ico">💾</div><h3>Komfort</h3><p>Drei Speicherplätze, Export/Import und Cloud-Sync per Code, Boss-Bestenliste, Minimap, große Schrift, Farbenblind-Modus und Mods.</p></div>
   </div>
 </div></section>
 
@@ -118,18 +136,19 @@ footer{border-top:4px solid var(--edge);padding:28px 0;font-size:13px;color:var(
 
 <footer><div class="wrap">Pixel World · ein kleines Browser-Abenteuer · <a href="play/">Spielen</a> · <a href="https://github.com/jodaaisupport-commits/pixel-world">GitHub</a><br>Alle Grafiken und Musik werden prozedural im Spiel erzeugt.</div></footer>
 
-<div id="lb" role="dialog" aria-modal="true" aria-label="Screenshot"><button class="x" aria-label="Schließen">✕</button><button class="nv p" aria-label="Vorheriges">‹</button><img alt=""><p></p><button class="nv n" aria-label="Nächstes">›</button></div>
+<div id="lb" role="dialog" aria-modal="true" aria-label="Screenshot"><button class="x" aria-label="Schließen">✕</button><button class="nv p" aria-label="Vorheriges">‹</button><p></p><button class="nv n" aria-label="Nächstes">›</button></div>
 
 <script>
 const SHOTS=[['dorf','Das Dorf – Startpunkt am Brunnen'],['taverne','Innenraum: Taverne „Zum Goldenen Krug“'],['dialog','Gespräche mit den Dorfbewohnern'],['kampf','Kampf im Dunkelwald'],['boss','Bosskampf mit Lebensleiste'],['oase','Wüste mit Oase'],['frost','Die Frosthöhen'],['vulkaninsel','Die Vulkaninsel'],['kueste','Küste und Bootssteg'],['handy','Handy-Ansicht mit Touch-Steuerung']];
-const gal=document.getElementById('gal'),lb=document.getElementById('lb'),li=lb.querySelector('img'),lp=lb.querySelector('p');let cur=0,last;
+const gal=document.getElementById('gal'),lb=document.getElementById('lb'),lp=lb.querySelector('p');let li=null;let cur=0,last;
 SHOTS.forEach(([f,c],i)=>{const b=document.createElement('button');b.setAttribute('aria-label','Vergrößern: '+c);b.innerHTML=`<figure class="px"><img src="img/${f}-t.webp" alt="${c}" loading="lazy" width="640" height="360"><figcaption>${c}</figcaption></figure>`;b.onclick=()=>{last=b;show(i)};gal.appendChild(b)});
-function show(i){cur=(i+SHOTS.length)%SHOTS.length;li.src='img/'+SHOTS[cur][0]+'.webp';li.alt=lp.textContent=SHOTS[cur][1];lb.classList.add('open');lb.querySelector('.x').focus()}
+function show(i){cur=(i+SHOTS.length)%SHOTS.length;if(!li){li=document.createElement('img');lb.insertBefore(li,lp);}li.src='img/'+SHOTS[cur][0]+'.webp';li.alt=lp.textContent=SHOTS[cur][1];lb.classList.add('open');lb.querySelector('.x').focus()}
 function close(){lb.classList.remove('open');last&&last.focus()}
 lb.querySelector('.x').onclick=close;lb.querySelector('.p').onclick=()=>show(cur-1);lb.querySelector('.n').onclick=()=>show(cur+1);
 lb.addEventListener('click',e=>{if(e.target===lb)close()});
 addEventListener('keydown',e=>{if(!lb.classList.contains('open'))return;if(e.key==='Escape')close();if(e.key==='ArrowLeft')show(cur-1);if(e.key==='ArrowRight')show(cur+1)});
 let tx=0;lb.addEventListener('touchstart',e=>tx=e.touches[0].clientX,{passive:true});lb.addEventListener('touchend',e=>{const d=e.changedTouches[0].clientX-tx;if(Math.abs(d)>50)show(cur+(d<0?1:-1))});
 </script>
+<script type="module">import { hit } from './src/v110/net.js'; hit('landing');</script>
 </body>
 </html>

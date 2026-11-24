@@ -1,4 +1,6 @@
-const CACHE = 'pixel-world-v102';
+// Cache-Name wird beim Deploy (GitHub Actions, .github/workflows/ci.yml) automatisch durch
+// 'pixel-world-<commit>' ersetzt – kein manuelles Hochzählen mehr nötig.
+const CACHE = 'pixel-world-dev';
 const ASSETS = [
   './', './play/', './manifest.webmanifest', './.nojekyll',
   './src/main.js', './icons/favicon-32.png', './icons/apple-touch-icon.png',

@@ -99,3 +99,20 @@ export function clearSaveConfirm(slot, confirmFn) {
   clearSave(slot);
   return true;
 }
+
+// ---------------------------------------------------------------- v110: Export/Import
+/** Rohdaten eines Slots (oder null). */
+export function readSlotData(slot = currentSlot()) { return loadGame(slot); }
+/** Schreibt einen (bereits validierten) Spielstand in einen Slot inkl. Meta. */
+export function writeSlotData(data, slot = currentSlot()) {
+  try {
+    const d = { ...data, slot, time: data.time || Date.now() };
+    localStorage.setItem(key(slot), JSON.stringify(d));
+    if (slot === 0) localStorage.setItem(KEY_PREFIX, JSON.stringify(d));
+    const meta = listSlots();
+    meta[slot] = { time: d.time, map: d.map, title: d.title, ch: d.story?.ch, ch2: d.story?.ch2, hp: d.hp };
+    localStorage.setItem(META_KEY, JSON.stringify(meta));
+    return true;
+  } catch (e) { return false; }
+}
+export function anySave() { return [0, 1, 2].some((s) => !!loadGame(s)); }

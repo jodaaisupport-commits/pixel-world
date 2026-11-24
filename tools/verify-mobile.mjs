@@ -157,7 +157,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   const URL = process.env.URL || 'http://localhost:8080/play/';
   const OUT = new globalThis.URL('../screenshots/', import.meta.url).pathname;
   fs.mkdirSync(OUT, { recursive: true });
-  const browser = await chromium.launch({ executablePath: process.env.CHROME || '/usr/bin/google-chrome', headless: true, args: ['--use-gl=swiftshader'] });
+  const browser = await chromium.launch({ executablePath: process.env.CHROME || (fs.existsSync('/usr/bin/google-chrome') ? '/usr/bin/google-chrome' : undefined), headless: true, args: ['--use-gl=swiftshader'] });
   const checks = {};
   const check = (name, ok, info) => { checks[name] = !!ok; console.log(`${ok ? '✔' : '✘'} ${name}`, info !== undefined ? JSON.stringify(info) : ''); };
   try { await runMobile({ browser, URL, OUT, check, devices }); } catch (e) { console.log('ABBRUCH:', e.stack); checks.abbruch = false; }

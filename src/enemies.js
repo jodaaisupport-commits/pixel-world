@@ -217,6 +217,7 @@ function white(canvas) {
   return c;
 }
 const FROST = { '#4a4a56': '#5a7a9a', '#6e6e7c': '#a9c8e0', '#9a9aa8': '#d6e8f4', '#c8c8d2': '#ffffff', '#ffd23f': '#5ae0ff' };
+const PEARL = { '#8a2a1a': '#5a6a8a', '#a8341f': '#7a8aa8', '#b8402a': '#9aa8c8', '#c84a2a': '#b8c8e0', '#e05a3a': '#d8e4f4', '#f08a5a': '#ffffff' };
 function recolor(p, map) {
   const q = new Pix(p.w, p.h); q.d.set(p.d);
   const hex = (i) => '#' + [0, 1, 2].map((k) => q.d[i + k].toString(16).padStart(2, '0')).join('');
@@ -237,12 +238,17 @@ export function buildEnemyArt() {
     staubgeist: mk(dustFrames()), sandwurm: mk(wormFrames()), eisgeist: mk(wispFrames()),
     frostwolf: mk(wolf.map((p) => recolor(p, FROST))), frostwolfL: mk(wolf.map((p) => recolor(p, FROST).flipX())),
     eisigel: mk(hedgehogFrames()), eisigelL: mk(hedgehogFrames().map((p) => p.flipX())),
+    lavaschleim: mk(slimeFrames('#e8642a', '#ffc070', '#8a2a10')), perlkrabbe: mk(crabFrames().map((p) => recolor(p, PEARL))),
     qualle: mk(jellyFrames()), muschel: mk(shellKnightFrames()), muschelL: mk(shellKnightFrames().map((p) => p.flipX())),
   };
 }
 
 // ---------------------------------------------------------------- Definitionen
 export const ENEMY_DEFS = {
+  // v110: Vulkaninsel / Grotte
+  lavaschleim: { name: 'Lavaschleim', hp: 3, speed: 20, chase: 36, aggro: 90, dmg: 1, hw: 6, h: 7, art: 'lavaschleim', hop: true, burn: true, split: true, drops: [['glutkern', 0.5, 1], ['taler', 0.7, 2]] },
+  lavaschleim_klein: { name: 'Glutfunke', hp: 1, speed: 30, chase: 44, aggro: 120, dmg: 1, hw: 5, h: 6, art: 'lavaschleim', hop: true, burn: true, drops: [['taler', 0.4, 1]] },
+  perlkrabbe: { name: 'Perlkrabbe', hp: 4, speed: 22, chase: 38, aggro: 80, dmg: 1, hw: 7, h: 6, art: 'perlkrabbe', sideways: true, drops: [['perle', 0.45, 1], ['taler', 0.8, 3]] },
   slime: { name: 'Schleim', hp: 2, speed: 20, chase: 34, aggro: 80, dmg: 1, hw: 6, h: 7, art: 'slime', hop: true, drops: [['taler', 0.65, 1], ['herz', 0.25, 1]] },
   moorslime: { name: 'Moorschleim', hp: 3, speed: 18, chase: 32, aggro: 85, dmg: 1, hw: 6, h: 7, art: 'moorslime', hop: true, drops: [['taler', 0.8, 2], ['herz', 0.3, 1]] },
   bat: { name: 'Fledermaus', hp: 1, speed: 30, chase: 50, aggro: 100, dmg: 1, hw: 6, h: 6, art: 'bat', fly: true, drops: [['taler', 0.5, 1], ['herz', 0.25, 1]] },

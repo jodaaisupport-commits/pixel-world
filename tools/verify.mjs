@@ -6,17 +6,20 @@ import { chromium, devices } from 'playwright-core';
 import fs from 'node:fs';
 import { runArc2 } from './verify-arc2.mjs';
 import { runMobile } from './verify-mobile.mjs';
+import { runV110 } from './verify-v110.mjs';
 
 const URL = process.env.URL || 'http://localhost:8080/play/';
 const OUT = new globalThis.URL('../screenshots/', import.meta.url).pathname;
-const CHROME = process.env.CHROME || '/usr/bin/google-chrome';
+// CI-Fallback: ohne Chrome nimmt Playwright sein eigenes Chromium (npx playwright install chromium)
+const CHROME = process.env.CHROME || (fs.existsSync('/usr/bin/google-chrome') ? '/usr/bin/google-chrome' : undefined);
 fs.mkdirSync(OUT, { recursive: true });
 
 const browser = await chromium.launch({ executablePath: CHROME, headless: true, args: ['--use-gl=swiftshader'] });
-const page = await browser.newPage({ viewport: { width: 1280, height: 720 } });
+const page = await browser.newPage({ viewport: { width: 1280, height: 720 }, acceptDownloads: true });
 const problems = [];
-const ignoreNoise = (s) => /service.?worker|sw\.js|Failed to register|favicon|mods\/|chrome-extension/i.test(s || '');
-page.on('console', (m) => { const t = m.text(); if (m.type() === 'error' || m.type() === 'warning') { if (!ignoreNoise(t)) problems.push(`console.${m.type()}: ${t}`); } else console.log('  [page]', t); });
+// pixel-world-api: wird in den v110-Tests gemockt bzw. absichtlich „offline“ geschaltet
+const ignoreNoise = (s) => /service.?worker|sw\.js|Failed to register|favicon|mods\/|chrome-extension|pixel-world-api/i.test(s || '');
+page.on('console', (m) => { const t = m.text(); if (m.type() === 'error' || m.type() === 'warning') { if (!ignoreNoise(t) && !ignoreNoise(m.location()?.url)) problems.push(`console.${m.type()}: ${t}`); } else console.log('  [page]', t); });
 page.on('pageerror', (e) => { if (!ignoreNoise(e.message)) problems.push('pageerror: ' + e.message); });
 page.on('requestfailed', (r) => { const f = (r.failure() || {}).errorText || ''; if (!ignoreNoise(r.url()) && !/ERR_ABORTED/.test(f)) problems.push('requestfailed: ' + r.url() + ' ' + f); });
 page.on('response', (r) => { if (r.status() >= 400 && !ignoreNoise(r.url())) problems.push(`http ${r.status()}: ${r.url()}`); });
@@ -689,6 +692,9 @@ await page.keyboard.press('Escape');
 check('Optionen: Seed / Slot / Vibration', /Seed|Speicherplatz|Vibration/.test(opt2), opt2.slice(0, 120));
 const mods = await G(() => fetch('../mods/index.json').then((r) => r.ok));
 check('Mod-Index erreichbar', mods);
+
+// ------------------------------------------------------------ 11. v110
+await runV110({ page, URL, OUT, check });
 
 await runMobile({ browser, URL, OUT, check: (n, ok, info) => check(n, ok, info), devices });
 await browser.close();

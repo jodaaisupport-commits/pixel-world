@@ -167,9 +167,8 @@ export function installV100(api) {
     }
     if (code === 'KeyV') {
       // craft shortcut near stations
-      const id = api.state.scene?.id;
-      if (id === 'schmiede') api.craft?.('speer');
-      else if (id === 'mira' || id === 'lichtung') api.craft?.('heiltrank');
+      // v110: Werkbank-Menü mit Materialanzeige (Schmiede, Hildes Haus, Miras Lichtung)
+      if (api.openWorkbench) api.openWorkbench(api.state.scene?.id);
       else api.ui.toast('Craft: in Schmiede/Mira');
       return true;
     }
@@ -198,6 +197,7 @@ export function installV100(api) {
       return true;
     }
     if (it.id?.startsWith('lore_')) {
+      api.feuerprobeLore?.(it.id);
       api.findLore?.(it.id, 'Alte Inschrift', it.text);
       return true;
     }

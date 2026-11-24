@@ -1,0 +1,87 @@
+# CI & Deploy: Tests (tools/verify.mjs, Playwright) bei jedem Push/PR.
+# Auf main: nach grünen Tests Deploy auf GitHub Pages (Cache-Version = Commit) und Spiegel nach Forgejo.
+name: CI & Pages
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  test:
+    name: Tests (verify.mjs)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Abhängigkeiten
+        run: |
+          npm install --no-audit --no-fund
+          if [ ! -x /usr/bin/google-chrome ]; then npx --yes playwright@1.59.1 install --with-deps chromium; fi
+      - name: Webserver starten
+        run: |
+          python3 -m http.server 8080 >/tmp/http.log 2>&1 &
+          for i in $(seq 1 20); do curl -sf http://localhost:8080/play/ >/dev/null && break; sleep 0.5; done
+      - name: verify.mjs
+        run: node tools/verify.mjs
+      - name: Screenshots als Artefakt
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: screenshots
+          path: screenshots/*.png
+          retention-days: 7
+
+  deploy:
+    name: Deploy GitHub Pages
+    needs: test
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+      contents: read
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Seite bauen (nur Kopieren + Cache-Version einsetzen)
+        run: |
+          mkdir _site
+          rsync -a --exclude '.git' --exclude '.github' --exclude 'node_modules' --exclude 'tools' --exclude 'server' \
+            --exclude 'screenshots' --exclude 'docs' --exclude 'package.json' --exclude 'package-lock.json' ./ _site/
+          V="${GITHUB_SHA::10}"
+          sed -i "s/^const CACHE = .*/const CACHE = 'pixel-world-${V}';/" _site/sw.js
+          grep -q "pixel-world-${V}" _site/sw.js
+          printf '%s\n' "${V}" > _site/version.txt
+          echo "Version ${V}"; du -sh _site
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+      - id: deployment
+        uses: actions/deploy-pages@v4
+
+  mirror:
+    name: Spiegel nach Forgejo
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Push nach Forgejo (kein Force-Push)
+        env:
+          FORGEJO_TOKEN: ${{ secrets.FORGEJO_TOKEN }}
+        run: |
+          if [ -z "$FORGEJO_TOKEN" ]; then echo "::warning::Secret FORGEJO_TOKEN fehlt – Spiegel übersprungen"; exit 0; fi
+          git push "https://crypto:${FORGEJO_TOKEN}@git.85.190.126.179.sslip.io/crypto/pixel-world.git" HEAD:refs/heads/main

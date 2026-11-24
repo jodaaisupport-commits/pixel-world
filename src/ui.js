@@ -18,7 +18,7 @@ export class UI {
     this.coinEl = $('coins'); this.lastHud = '';
     $('coin-icon').src = this.icon.taler;
     this.toasts = $('toasts'); this.bannerEl = $('banner'); this.bannerTimer = null;
-    this.inv = $('inv'); this.ql = $('questlog'); this.shop = $('shop'); this.opt = $('options');
+    this.inv = $('inv'); this.ql = $('questlog'); this.shop = $('shop'); this.opt = $('options'); this.net = $('netwin');
     this.bindTaps();
     this.optSel = 0; this.bannerQ = []; this.bannerBusy = 0;
     this.bossEl = $('bossbar'); this.cineEl = $('cine'); this.creditsEl = $('credits');
@@ -118,20 +118,25 @@ export class UI {
     if (this.mode === mode) return this.close();
     this.close();
     this.mode = mode;
-    const el = { inv: this.inv, quests: this.ql, shop: this.shop, options: this.opt }[mode];
+    const el = { inv: this.inv, quests: this.ql, shop: this.shop, options: this.opt, net: this.net }[mode];
     el.classList.remove('hidden');
     if (mode === 'shop') this.shopSel = 0;
     this.G.sfx('menu');
     this.render();
   }
+  /** v110: Online/Spielstand-Fenster (ersetzt ein offenes Fenster). */
+  openNet() {
+    for (const el of [this.inv, this.ql, this.shop, this.opt]) el.classList.add('hidden');
+    this.mode = 'net'; this.net.classList.remove('hidden'); this.G.sfx('menu');
+  }
   close() {
     if (this.mode) this.G.sfx('menu', { close: true });
     this.mode = null;
-    for (const el of [this.inv, this.ql, this.shop, this.opt]) el.classList.add('hidden');
+    for (const el of [this.inv, this.ql, this.shop, this.opt, this.net]) el && el.classList.add('hidden');
   }
   /** Antippen/Klicken: Schließen-Knopf, Inventarplätze, Ladenzeilen, Optionszeilen. */
   bindTaps() {
-    for (const el of [this.inv, this.ql, this.shop, this.opt]) {
+    for (const el of [this.inv, this.ql, this.shop, this.opt, this.net].filter(Boolean)) {
       const x = document.createElement('button'); x.className = 'win-close'; x.setAttribute('aria-label', 'Schließen'); x.textContent = '✕';
       x.addEventListener('click', (e) => { e.stopPropagation(); this.close(); });
       el.appendChild(x);
@@ -151,6 +156,7 @@ export class UI {
     else if (this.mode === 'quests') this.renderQuests();
     else if (this.mode === 'shop') this.renderShop();
     else if (this.mode === 'options') this.renderOptions();
+    else if (this.mode === 'net') this.G.renderNet && this.G.renderNet();
   }
   optionRows() {
     const a = this.G.audio.settings, s = this.G.vsettings ? this.G.vsettings() : {};
@@ -176,6 +182,10 @@ export class UI {
       ['Speicherplatz', `Slot ${slot + 1}` + (slots[slot] ? ` (${slots[slot].map || '?'})` : ' · leer'), 'slot'],
       ['Spielstand löschen', 'Slot ' + (slot + 1), 'delsave'],
       ['Seed kopieren', this.G.seedLabel ? this.G.seedLabel() : '—', 'seed'],
+      ['Spielstand exportieren / importieren', 'Code · Datei', 'export'],
+      ['Cloud-Spielstand', 'Sync-Code', 'cloud'],
+      ['Bestenliste', 'Boss-Bestzeiten', 'board'],
+      ['Online-Funktionen', this.G.onlineLabel ? this.G.onlineLabel() : 'An', 'online'],
       ['Zurück zum Spiel', '', 'close'],
     ];
   }
@@ -253,6 +263,7 @@ export class UI {
     if (!this.mode) return false;
     const m = this.mode;
     if (code === 'Escape' || (m === 'inv' && (code === 'KeyI' || code === 'Tab')) || (m === 'quests' && code === 'KeyQ') || (m === 'options' && code === 'KeyP')) { this.close(); return true; }
+    if (m === 'net') { if (code === 'Escape' || code === 'KeyP') this.close(); return true; }
     if (m === 'options') {
       const rows = this.optionRows(), A = this.G.audio;
       const d = { ArrowUp: -1, KeyW: -1, ArrowDown: 1, KeyS: 1 }[code];
@@ -275,6 +286,8 @@ export class UI {
       if (k === 'slot' && (act || lr)) { this.G.cycleSlot && this.G.cycleSlot(lr || 1); }
       if (k === 'delsave' && act) { this.G.deleteSlot && this.G.deleteSlot(); }
       if (k === 'seed' && act) { this.G.copySeed && this.G.copySeed(); }
+      if (k === 'online' && (act || lr)) { this.G.toggleOnline && this.G.toggleOnline(); }
+      if ((k === 'export' || k === 'cloud' || k === 'board') && act) { this.G.openNet({ export: 'save', cloud: 'cloud', board: 'board' }[k]); return true; }
       if (act || lr) { this.G.sfx('select'); this.G.markDirty && this.G.markDirty(); }
       this.render(); return true;
     }

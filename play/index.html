@@ -66,6 +66,22 @@
     .window h2 { margin: 0 0 10px; font-size: 18px; color: #ffe14d; letter-spacing: 1px; }
     .window .hint { margin-top: 10px; color: #8f826c; font-size: 11px; text-align: right; }
     .window .muted { color: #8f826c; }
+    /* v110: Export/Import, Bestenliste, Cloud */
+    #netwin { overflow-y: auto; }
+    #netwin h3 { margin: 10px 0 4px; font-size: 13px; color: #ffe14d; }
+    #netwin p { margin: 4px 0; } #netwin .small { font-size: 11px; }
+    #netwin textarea, #netwin input:not([type=file]) { width: 100%; box-sizing: border-box; background: #14100f; color: #f7eedc; border: 2px solid #5a4a3a; font: 11px ui-monospace, monospace; padding: 6px; resize: vertical; }
+    #netwin input:not([type=file]) { width: auto; flex: 1; font-size: 13px; }
+    #netwin .net-row { display: flex; gap: 8px; margin: 6px 0; flex-wrap: wrap; align-items: center; }
+    #netwin button, #netwin .net-file { background: #3a2a22; color: #f7eedc; border: 2px solid #8f826c; padding: 6px 10px; font: inherit; font-size: 12px; cursor: pointer; }
+    #netwin button:hover, #netwin .net-file:hover, #netwin button:focus-visible { border-color: #ffe14d; color: #ffe14d; }
+    #netwin button[disabled] { opacity: .45; cursor: default; }
+    #netwin .net-msg.ok { color: #8fe08a; } #netwin .net-msg.err { color: #ff8a7a; }
+    #netwin .net-tabs { display: flex; gap: 6px; margin-bottom: 6px; } #netwin .net-tabs button.on { border-color: #ffe14d; color: #ffe14d; }
+    #netwin .net-list { margin: 6px 0; padding-left: 0; list-style: none; max-height: 220px; overflow-y: auto; }
+    #netwin .net-list li { display: flex; justify-content: space-between; padding: 3px 6px; border-bottom: 1px solid #3a2e28; }
+    #netwin .net-list li:nth-child(-n+3) b { color: #ffe14d; }
+
     .slot { width: 54px; height: 54px; background: #3a2a30; border: 2px solid #5a4648; box-shadow: inset 2px 2px 0 #20161a; position: relative; box-sizing: border-box; }
     .slot img { width: 54px; height: 54px; image-rendering: pixelated; position: absolute; left: -2px; top: -2px; }
     .slot b { position: absolute; right: 3px; bottom: 0; font-size: 12px; color: #fff; text-shadow: 1px 1px 0 #000, -1px 0 0 #000; }
@@ -246,6 +262,7 @@
   <div id="questlog" class="panel window hidden"><h2>Questlog</h2><div class="ql-body"></div><div class="hint">Q/Esc schließen</div></div>
   <div id="shop" class="panel window hidden"><h2>Antons Krämerladen</h2><div class="shop-body"></div><div class="hint">↑↓ wählen · E kaufen · Esc schließen</div></div>
   <div id="options" class="panel window hidden"><h2>Optionen · Audio</h2><div class="opt-body"></div><div class="hint">↑↓ wählen · ←→ ändern · E umschalten · P/Esc schließen</div></div>
+  <div id="netwin" class="panel window hidden" role="dialog" aria-modal="true"><h2>Spielstand</h2><div class="net-body"></div><div class="hint">Esc schließen</div></div>
   <div id="bossbar" class="panel hidden"></div>
   <div id="cine" class="hidden"><div class="cine-title"></div><div class="cine-text panel"></div><div class="cine-hint"></div></div>
   <div id="credits" class="hidden"><div class="cr-stars"></div><div class="cr-roll"></div><div class="cr-end">E – weiter ins freie Spiel</div></div>

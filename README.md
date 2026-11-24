@@ -458,6 +458,29 @@ Debug-Hilfen: `?nointro=1` überspringt das Intro; `window.__game.setStory(kapit
 - Mehrere Speicherplätze, Touch-/Gamepad-Steuerung
 
 
+## Changelog – v110
+
+1. **Spielstand exportieren/importieren**: Optionen → „Spielstand exportieren / importieren“. Export als kopierbarer Code (`PW1-…`, mit Prüfsumme) oder als `.json`-Datei; Import per Einfügen oder Datei-Upload, mit Prüfung (Pflichtfelder, Wertebereiche, Prüfsumme) und Rückfrage vor dem Überschreiben des aktuellen Speicherplatzes. Ohne vorhandenen Spielstand erscheint beim Start ein Hinweis.
+   *Hinweis Umzug*: Spielstände von der alten Adresse `jodaaisupport-commits.github.io/pixel-world` liegen im localStorage jener Herkunft. Weil diese Adresse inzwischen per 301 auf die neue Domain umleitet, ist dort kein Export mehr möglich – eine automatische Übernahme gibt es daher nicht. Ab v110 lassen sich Spielstände per Code/Datei/Cloud zwischen Geräten und Adressen umziehen.
+2. **GitHub Actions CI** (`.github/workflows/ci.yml`): `node tools/verify.mjs` bei jedem Push und Pull Request (Chrome des Runners bzw. Playwright-Chromium als Rückfall, Umgebungsvariable `CHROME`).
+3. **Automatische Cache-Version**: GitHub Pages wird jetzt per Actions deployt (nur nach grünen Tests). Beim Deploy wird `const CACHE` in `sw.js` auf `pixel-world-<commit>` gesetzt und `version.txt` geschrieben – kein manuelles Hochzählen mehr. Eigene Domain + HTTPS bleiben.
+4. **Forgejo-Spiegel**: Derselbe Workflow pusht `main` nach jedem Push automatisch nach Forgejo (Secret `FORGEJO_TOKEN`, kein Force-Push).
+5. **Landingpage**: Open-Graph-/Twitter-Bild (`img/og-image.png`, 1200×630) und Meta-Tags, deutscher SEO-Titel/Beschreibung, JSON-LD, Favicon 32 px + Apple-Touch-Icon, `robots.txt` + `sitemap.xml`; Vulkaninsel-Screenshot ohne Gebietsbanner neu aufgenommen; leeres Lightbox-`<img>` (wurde als „nicht geladenes Bild“ gezählt) wird jetzt erst beim Öffnen erzeugt.
+6. **Musik & Effekte**: Neue prozedurale Stücke „Klingenklang“ (Kampf, startet wenn Gegner dich verfolgen) und „Glutinsel“ (Vulkaninsel/Grotte, statt bisher Tavernenmusik). Dorf-, Gebiets- und Boss-Themen, Effekte, Lautstärkeregler (Musik/Effekte/Menü) und Stummschaltung bleiben in den Optionen, werden gespeichert und starten erst nach der ersten Eingabe (Autoplay-Regeln).
+7. **Vertiefte v100-Funktionen**:
+   - *Angeln*: Fischarten je Gebiet (z. B. Glutkarpfen am Vulkan), perfekter Zug mit Bonus, Fischbuch, Regen/Sturm lässt schneller anbeißen.
+   - *Beet*: drei Pflanzen (Karotte, Kürbis, Glühbeere), Regen verdoppelt das Wachstum, Wachstum läuft bis 10 Min. offline weiter.
+   - *Wetter*: Gewitter mit Blitzen, Schneesturm zehrt Ausdauer, Sandsturm verengt die Sicht.
+   - *Werkbank* (Taste V bei Bruno, zu Hause oder bei Mira): Menü mit ✔/✘ und Materialzählern; neue Rezepte Großer Trank, Obsidianschwert, Fischsuppe.
+   - *Gegner*: Lavaschleim (verbrennt, teilt sich in Glutfunken, lässt Glutkerne fallen) auf der Vulkaninsel, Perlkrabbe in der Grotte.
+   - *Questkette „Die Feuerprobe“*: Lore-Tafel → Runen → Grotte → Obsidianschwert schmieden, Belohnung 60 Taler + Titel „Feuerläufer“.
+   - *Speicherplätze & Bestzeiten*: Platzwechsel mit Rückfrage und sauberem Neuladen; persönliche Boss-Bestzeiten.
+8. **Echte Geräte**: BrowserStack war nicht nutzbar (Zugangsdaten abgelehnt); Android/iOS wurden per Playwright-Geräteemulation (Pixel, iPhone) gegen die Live-Seite geprüft.
+9. **Bestenliste & Cloud-Spielstand**: Eigener kleiner Dienst (`server/`, Node + SQLite in Docker) unter `https://pixel-world-api.85.190.126.179.sslip.io`. Boss-Bestzeiten (Umbrakor, Khepran, Thalassa) mit Namen eintragen, Top 20 je Boss; Cloud-Spielstand per Sync-Code (`XXXX-XXXX-XX`) hoch- und auf anderem Gerät herunterladen. CORS nur für `pixel-world.jodabreit-ai.de`. Online-Funktionen lassen sich in den Optionen abschalten; ist der Dienst nicht erreichbar, läuft das Spiel normal offline weiter.
+10. **Besucherstatistik ohne Cookies**: Zählt nur Aufrufe der Landingpage und Spielstarts pro Tag (keine Cookies, keine IP-Speicherung, „Do Not Track“ wird beachtet). Dashboard: `https://pixel-world-api.85.190.126.179.sslip.io/stats` (Passwortschutz).
+
+Tests: `node tools/verify.mjs` – 170 Prüfungen (neu: `tools/verify-v110.mjs`).
+
 ## Changelog – v100 (100 Verbesserungen)
 
 Große Erweiterungspackung: Touch-Feinschliff, Kampf (Krits, Status, Waffenwechsel, Schild, Combo, Ausweichen, Arena-Fallen, Checkpoint-Tod), Story (Schnellreise, Kapitelwahl, Tagebuch, Ruf, Briefe, Epilog), Welt (Wetter, Tag/Nacht, Schwimmen, Klettern, Farm, Angeln, Bergbau, Kamel, Boot, Warp-Steine, Vulkaninsel + Unterwasser-Grotte, Sammler), NPCs (Routinen, Freundschaft, Versteckspiel, Begleiter Selma, Runen-Übersetzer), Items (Crafting, Tränke, Equipment, Hotbar, Rezepte, Schlüsselbund, Skins), Audio (Ambient, Kampfboost, getrennte Lautstärken, Mute, Fußtritte, Echo, Jingle, Stereo), UI (Settings, 3 Speicherplätze, Auto-Save, Tutorial, große Schrift, Farbblind, Performance, Screenshot), Technik (Service Worker, Ladebalken, Fehlerseite, Seed kopieren, `?debug=1`, Mod-API unter `/mods/`).

@@ -2,6 +2,28 @@
 // Format: ein Token pro Schritt (Achtel), '.' = Pause, '-' = vorherige Note halten, '|' wird ignoriert.
 
 export const TRACKS = {
+  // ---- v110: Kampf-Thema (überblendet bei Gegnern in der Nähe) und Vulkaninsel
+  combat: {
+    name: 'Klingenklang', bpm: 144, steps: 8,
+    chords: 'Am Am F G Am Am F E',
+    lead: { inst: 'pulse25', vol: 0.12, vib: 0.003, notes: `
+      A5 - C6 - E6 - D6 C6 | B5 - G5 - E5 - G5 - | A5 - F5 - C6 - A5 - | B5 - D6 - B5 - G5 - |
+      A5 - C6 - E6 - A6 - | G6 F6 E6 - D6 - C6 - | F5 - A5 - C6 - F6 - | E6 - D6 - B5 - G#5 -` },
+    bass: { inst: 'saw', vol: 0.08, style: 'drive', oct: 2 },
+    arp: { inst: 'pulse12', vol: 0.04, style: 'up', oct: 4 },
+    drums: 'k h s h k h s s', drumVol: 0.85,
+  },
+  volcano: {
+    name: 'Glutinsel', bpm: 96, steps: 8,
+    chords: 'Dm Dm Bb C Dm Dm Gm A',
+    lead: { inst: 'pulse25', vol: 0.13, vib: 0.005, notes: `
+      D5 - F5 - A5 - - G5 | F5 - E5 - D5 - - . | Bb4 - D5 - F5 - E5 D5 | C5 - E5 - G5 - - . |
+      D5 - A5 - D6 - C6 A5 | F5 - - - D5 - - . | G5 - Bb5 - D6 - C6 Bb5 | A5 - C#6 - E6 - - .` },
+    bass: { inst: 'triangle', vol: 0.32, style: 'drive', oct: 2 },
+    arp: { inst: 'pulse12', vol: 0.045, style: 'updown', oct: 4 },
+    drums: 'k . h k s . h .', drumVol: 0.75, echo: 0.2,
+  },
+
   village: {
     name: 'Pixeldorf', bpm: 112, steps: 8,
     chords: 'C G Am F C G F G',

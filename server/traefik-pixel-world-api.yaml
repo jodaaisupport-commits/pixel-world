@@ -1,0 +1,27 @@
+# Traefik-Route pixel-world-api.85.190.126.179.sslip.io -> Container pixel-world-api. Manuell verwaltet (nicht Coolify).
+http:
+  routers:
+    pixel-world-api-http:
+      entryPoints: [http]
+      rule: Host(`pixel-world-api.85.190.126.179.sslip.io`)
+      service: pixel-world-api
+      priority: 100
+      middlewares: [pixel-world-api-https]
+    pixel-world-api-https:
+      entryPoints: [https]
+      rule: Host(`pixel-world-api.85.190.126.179.sslip.io`)
+      service: pixel-world-api
+      priority: 100
+      middlewares: [pixel-world-api-gzip]
+      tls:
+        certResolver: letsencrypt
+  middlewares:
+    pixel-world-api-gzip:
+      compress: true
+    pixel-world-api-https:
+      redirectScheme: { scheme: https, permanent: true }
+  services:
+    pixel-world-api:
+      loadBalancer:
+        servers:
+          - url: http://pixel-world-api:8080

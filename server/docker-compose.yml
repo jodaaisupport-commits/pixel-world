@@ -1,0 +1,20 @@
+# Pixel World API – läuft im Coolify-Netz, Route über Traefik (dynamische Datei pixel-world-api.yaml).
+services:
+  pixel-world-api:
+    build: .
+    image: pixel-world-api:latest
+    container_name: pixel-world-api
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      ALLOW_ORIGINS: https://pixel-world.jodabreit-ai.de
+    volumes:
+      - pixel-world-api-data:/data
+    networks: [coolify]
+    mem_limit: 128m
+    cpus: 0.5
+volumes:
+  pixel-world-api-data:
+networks:
+  coolify:
+    external: true
